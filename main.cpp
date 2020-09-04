@@ -2,6 +2,7 @@
 #include <iostream>
 #include <chrono>
 #include <date/date.h>
+namespace jewish {
 namespace details {
 struct unspecified_month_disambiguator {};
 template <typename ...Rs> struct ratio_add;
@@ -10,19 +11,20 @@ template <typename R0> struct ratio_add<R0> { using type = R0; };
 template <typename R0, typename ...Rs>
 struct ratio_add<R0, Rs...> { using type = std::ratio_add<R0, ratio_add_t<Rs...>>; };
 }
-namespace jewish {
+using last_spec = date::last_spec; //std::chrono::sys_days
 using sys_days = date::sys_days; //std::chrono::sys_days
+using local_days = date::local_days; //std::chrono::sys_days
 using days = std::chrono::days;
 using weeks = std::chrono::weeks;
 using parts = std::chrono::duration<int, std::ratio_divide<std::chrono::hours::period, std::ratio<1080>>>;
 
 static constexpr auto molad_tohu = days(2) + std::chrono::hours(5) + parts(204);
 
-using month_period = details::ratio_add_t<std::ratio_multiply<days::period, std::ratio<29>>,
+using molad_period = details::ratio_add_t<std::ratio_multiply<days::period, std::ratio<29>>,
       std::ratio_multiply<std::chrono::hours::period, std::ratio<12>>,
       std::ratio_multiply<parts::period, std::ratio<793>>>;
-using months = std::chrono::duration<int, month_period>;
-using years  = std::chrono::duration<int, std::ratio_multiply<month_period, std::ratio<235, 19>>>; 
+using months = std::chrono::duration<int, molad_period>;
+using years  = std::chrono::duration<int, std::ratio_multiply<molad_period, std::ratio<235, 19>>>; 
 class day;
 constexpr day  operator+(const day&  x, const days& y) noexcept;
 constexpr day  operator-(const day&  x, const days& y) noexcept;
@@ -109,7 +111,7 @@ class weekday
 	constexpr auto operator<=>(const weekday&) const = default;
 
 	constexpr weekday_indexed operator[](unsigned index) const noexcept;// { return {*this, index}; }
-	//constexpr weekday_last    operator[](last_spec)      const noexcept;
+	constexpr weekday_last    operator[](last_spec)      const noexcept;
 
 	friend constexpr inline days operator-(const weekday& x, const weekday& y) noexcept
 	{
@@ -194,7 +196,14 @@ public:
 
 template<class CharT, class Traits>
 std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits>& os, const weekday_indexed& wdi);
+operator<<(std::basic_ostream<CharT, Traits>& os, const weekday_indexed& wdi)
+{
+	os << wdi.weekday() << '[' << wdi.index();
+	if (!(1 <= wdi.index() && wdi.index() <= 6))
+		os << " is not a valid index";
+	os << ']';
+	return os;
+}
 
 constexpr weekday_indexed weekday::operator[](unsigned index) const noexcept { return {*this, index}; }
 // weekday_last
@@ -215,8 +224,12 @@ constexpr bool operator!=(const weekday_last& x, const weekday_last& y) noexcept
 
 template<class CharT, class Traits>
 std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits>& os, const weekday_last& wdl);
+operator<<(std::basic_ostream<CharT, Traits>& os, const weekday_last& wdl) {
+	return os << wdl.weekday() << "[last]";
+}
 
+
+constexpr weekday_last weekday::operator[](last_spec) const noexcept { return {*this}; }
 
 class month;
 constexpr month  operator+(const month&  x, const months& y) noexcept;
@@ -286,15 +299,15 @@ class year
 	static constexpr year max() noexcept;
 
 	constexpr auto operator<=>(const year&) const = default;
-	//private:
+	private:
 	friend class year_month;
 	friend class year_month_last;
 	friend class year_month_day_last;
-	constexpr months to_months() const { return months(((y_-1)*235+1)/19); }
-	constexpr auto to_days()
+	constexpr months months_since_creation() const { return months(((y_-1)*235+1)/19); }
+	constexpr auto days_since_creation()
 	{
 		using std::chrono::hours;
-		auto ps = molad_tohu + to_months();
+		auto ps = molad_tohu + months_since_creation();
 		auto ds = floor<days>(ps);
 		auto wd = weekday(static_cast<unsigned>(ds.count()%7));
 		auto ps_left = ps - ds;
@@ -335,20 +348,20 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const year& y)
 
 class year_month_last
 {
-    jewish::year           y_;
+	jewish::year           y_;
 
-public:
-    constexpr year_month_last(const jewish::year& y) noexcept : y_(y) {}
+	public:
+	constexpr year_month_last(const jewish::year& y) noexcept : y_(y) {}
 
-    constexpr year_month_last& operator+=(const years& y)  noexcept { y_ += y; return *this; }
-    constexpr year_month_last& operator-=(const years& y)  noexcept { y_ -= y; return *this; }
+	constexpr year_month_last& operator+=(const years& y)  noexcept { y_ += y; return *this; }
+	constexpr year_month_last& operator-=(const years& y)  noexcept { y_ -= y; return *this; }
 
-    constexpr jewish::year           year()           const noexcept { return y_; }
-    constexpr jewish::month month() const noexcept {
-	    return jewish::month(((y_+years(1)).to_months() - y_.to_months()).count());
-    }
+	constexpr jewish::year           year()           const noexcept { return y_; }
+	constexpr jewish::month month() const noexcept {
+		return jewish::month(((y_+years(1)).months_since_creation() - y_.months_since_creation()).count());
+	}
 
-    constexpr bool ok() const noexcept { return y_ >= jewish::year(1); }
+	constexpr bool ok() const noexcept { return y_ >= jewish::year(1); }
 };
 
 class year_month;
@@ -381,22 +394,22 @@ class year_month
 	private:
 	friend class year_month_day_last;
 	friend class year_month_day;
-	constexpr months to_months () const
+	constexpr months months_since_creation () const
 	{
-		return months(static_cast<unsigned>(m_)-1) + y_.to_months();
+		return months(static_cast<unsigned>(m_)-1) + y_.months_since_creation();
 	}
-	static constexpr year_month from_months(months m)
+	static constexpr year_month from_creation_months(months m)
 	{
 		auto y = jewish::year(1 + ((m.count()+1)*19-2)/235);
-		auto dm = m - y.to_months();
+		auto dm = m - y.months_since_creation();
 
 		return year_month(y, jewish::month(dm.count() + 1));
 	}
-	constexpr days to_days()
+	constexpr days days_since_creation()
 	{
 		auto m = static_cast<unsigned>(month());
-		auto ds = year().to_days();
-		auto year_days = (year()+years(1)).to_days() - ds;
+		auto ds = year().days_since_creation();
+		auto year_days = (year()+years(1)).days_since_creation() - ds;
 		if (y_.is_leap() && m > 5)
 			m--, ds += days(30);
 		ds += days((59 * (m - 1) + 1) / 2);
@@ -408,11 +421,11 @@ class year_month
 	}
 	friend constexpr year_month operator+(const year_month& ym, const months& dm) noexcept
 	{
-		auto yms = ym.to_months();
-		return year_month::from_months(yms + dm);
+		auto yms = ym.months_since_creation();
+		return year_month::from_creation_months(yms + dm);
 	}
 	friend constexpr months operator-(const year_month& x, const year_month& y) noexcept
-	{ return x.to_months() - y.to_months(); }
+	{ return x.months_since_creation() - y.months_since_creation(); }
 };
 constexpr year_month operator-(const year_month& ym, const months& dm) noexcept { return ym+(-dm); }
 constexpr year_month operator+(const months& dm, const year_month& ym) noexcept { return ym+dm; }
@@ -440,21 +453,11 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const year_month& ym)
 	if (m < 6)
 		switch (m)
 		{
-			case 1:
-				os << "Tishrei";
-				break;
-			case 2:
-				os << "cheshvan";
-				break;
-			case 3:
-				os << "Kislev";
-				break;
-			case 4:
-				os << "Tevet";
-				break;
-			case 5:
-				os << "Shvat";
-				break;
+			case 1: os << "Tishrei"; break;
+			case 2: os << "cheshvan"; break;
+			case 3: os << "Kislev"; break;
+			case 4: os << "Tevet"; break;
+			case 5: os << "Shvat"; break;
 			default:
 				os << static_cast<unsigned>(m) << " is not a valid month";
 				break;
@@ -465,27 +468,13 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const year_month& ym)
 		m += ym.year().is_leap() ? 1 : 2;
 		switch (m)
 		{
-			case 8:
-				os << "Adar 2";
-				break;
-			case 9:
-				os << "Nisan";
-				break;
-			case 10:
-				os << "Iyyar";
-				break;
-			case 11:
-				os << "Sivan";
-				break;
-			case 12:
-				os << "Tamuz";
-				break;
-			case 13:
-				os << "Av";
-				break;
-			case 14:
-				os << "Elul";
-				break;
+			case 8: os << "Adar 2"; break;
+			case 9: os << "Nisan"; break;
+			case 10: os << "Iyyar"; break;
+			case 11: os << "Sivan"; break;
+			case 12: os << "Tamuz"; break;
+			case 13: os << "Av"; break;
+			case 14: os << "Elul"; break;
 			default:
 				os << static_cast<unsigned>(m) << " is not a valid month";
 				break;
@@ -536,37 +525,8 @@ class year_month_day_last
 	constexpr jewish::month_day_last month_day_last() const noexcept {return mdl_;}
 	constexpr jewish::day            day()            const noexcept
 	{
-#if 0
-		constexpr jewish::day regular[] =
-		{
-			jewish::day(30), jewish::day(29), jewish::day(30),
-			jewish::day(29), jewish::day(30), jewish::day(29),
-			jewish::day(30), jewish::day(29), jewish::day(30),
-			jewish::day(29), jewish::day(30), jewish::day(29)
-		};
-		constexpr jewish::day leap[] =
-		{
-			jewish::day(30), jewish::day(29), jewish::day(30),
-			jewish::day(29), jewish::day(30), jewish::day(30), jewish::day(29),
-			jewish::day(30), jewish::day(29), jewish::day(30),
-			jewish::day(29), jewish::day(30), jewish::day(29)
-		};
-		/*constexpr*/ jewish::day const* ld[] = { regular, leap };
-
-		auto m = static_cast<unsigned>(month());
-		auto d = ld[y_.is_leap()][m-1];
-		auto year_days = [](jewish::year y) { return (y+years(1)).to_days() - y.to_days(); };
-		/* Special cases */
-		if (month() == jewish::month(2) && year_days(y_).count() % 10 == 5)	/* long Heshvan */
-			d++;
-		if (month() == jewish::month(3) && year_days(y_).count() % 10 == 3)	/* short Kislev */
-			d--;
-
-		return d;
-#endif
 		auto ym = year_month(year(), month());
-		auto next = ym+months(1);
-		return jewish::day((next.to_days() - ym.to_days()).count());
+		return jewish::day(((ym+months(1)).days_since_creation() - ym.days_since_creation()).count());
 	}
 
 	constexpr operator sys_days() const noexcept;
@@ -643,20 +603,20 @@ class year_month_day
 		return year_month(year(), month()).ok() && day().ok()
 			&& day() <= year_month_day_last(year(), month_day_last(month())).day();
 	}
-	operator sys_days() { return sys_days(to_days()); }
+	operator sys_days() { return sys_days(days_since_creation() - sys_epoch_delta); }
 	private:
-	static constexpr auto sys_epoch = year_month(jewish::year(5730), jewish::month(4)).to_days()+days(23);
-	days to_days() {
-		auto ds = year_month(year(), month()).to_days() + days(static_cast<unsigned>(day()));
-		return ds - sys_epoch;
+	static constexpr auto sys_epoch_delta = year_month(jewish::year(5730), jewish::month(4)).days_since_creation()+days(23);
+	days days_since_creation() {
+		auto ds = year_month(year(), month()).days_since_creation() + days(static_cast<unsigned>(day()));
+		return ds;
 	}
 	year_month_day from_days(days ds)
 	{
-		ds+=sys_epoch;
-		auto ym = year_month::from_months(floor<months>(ds-floor<days>(molad_tohu)));
-		if (ym.to_days() >= ds)
+		ds+=sys_epoch_delta;
+		auto ym = year_month::from_creation_months(floor<months>(ds-floor<days>(molad_tohu)));
+		if (ym.days_since_creation() >= ds)
 			ym -= months(1);
-		return year_month_day(ym.year(), ym.month(), jewish::day((ds-ym.to_days()).count()));
+		return year_month_day(ym.year(), ym.month(), jewish::day((ds-ym.days_since_creation()).count()));
 	}
 
 };
@@ -742,12 +702,12 @@ public:
     constexpr jewish::weekday weekday() const noexcept { return wdl_.weekday(); }
     constexpr jewish::weekday_last weekday_last() const noexcept { return wdl_; }
 
-    constexpr operator sys_days() const noexcept { return sys_days(to_days()); }
+    constexpr operator sys_days() const noexcept { return sys_days(days_since_sys_epoch()); }
     //constexpr explicit operator local_days() const noexcept { return local_days(to_days()); }
     constexpr bool ok() const noexcept { return jewish::year_month(year(), month()).ok(); }
 
 private:
-    constexpr days to_days() const noexcept
+    constexpr days days_since_sys_epoch() const noexcept
     {
 	    auto const d = sys_days(year_month_day_last(year(), month_day_last(month())));
 	    auto const dd = jewish::weekday(d) - wdl_.weekday();
@@ -769,13 +729,13 @@ public:
 	    : y_(y) , m_(m) , wdi_(wdi) {}
     constexpr year_month_weekday(const sys_days& dp) noexcept
 	    : year_month_weekday(from_days(dp.time_since_epoch())) {}
-#if 0
     constexpr explicit year_month_weekday(const local_days& dp) noexcept
 	    : year_month_weekday(from_days(dp.time_since_epoch())) {}
 
-    template<class = detail::unspecified_month_disambiguator>
+#if 0
+    template<class = details::unspecified_month_disambiguator>
     constexpr year_month_weekday& operator+=(const months& m) noexcept { *this = *this + m; return *this; }
-    template<class = detail::unspecified_month_disambiguator>
+    template<class = details::unspecified_month_disambiguator>
     constexpr year_month_weekday& operator-=(const months& m) noexcept { *this = *this - m; return *this; }
     constexpr year_month_weekday& operator+=(const years& y)  noexcept { *this = *this + y; return *this; }
     constexpr year_month_weekday& operator-=(const years& y)  noexcept { *this = *this - y; return *this; }
@@ -787,7 +747,7 @@ public:
     constexpr unsigned index() const noexcept { return wdi_.index(); }
     constexpr jewish::weekday_indexed weekday_indexed() const noexcept { return wdi_; }
 
-    constexpr operator sys_days() const noexcept { return sys_days{to_days()}; }
+    constexpr operator sys_days() const noexcept { return sys_days{days_since_sys_epoch()}; }
     //constexpr explicit operator local_days() const noexcept { return local_days{to_days()}; }
 
     constexpr bool ok() const noexcept
@@ -809,7 +769,7 @@ private:
 	    auto const ymd = year_month_day(dp);
 	    return {ymd.year(), ymd.month(), wd[(static_cast<unsigned>(ymd.day())-1)/7+1]};
     }
-    constexpr days to_days() const noexcept
+    constexpr days days_since_sys_epoch() const noexcept
     {
 	    auto d = sys_days(year_month_day(year(), month(), day(1)));
 	    return (d + (wdi_.weekday() - jewish::weekday(d) + days{(wdi_.index()-1)*7})
@@ -1017,39 +977,21 @@ int main() {
 	}
 
 
-	static_assert(jewish::year(1).to_months().count() == 0);
-	static_assert(jewish::year(3).to_months().count() == 24);
-	static_assert(jewish::year(3).is_leap());
-	static_assert(jewish::year_month_last(jewish::year(3)).month() == jewish::month(13));
-	static_assert(jewish::year(6).to_months().count() == 61);
-	static_assert(jewish::year(6).is_leap());
-	static_assert(jewish::year_month_last(jewish::year(6)).month() == jewish::month(13));
-	static_assert(jewish::year(8).to_months().count() == 86);
-	static_assert(jewish::year(9).to_months().count() == 99);
-	static_assert(jewish::year(8).is_leap());
-	static_assert(jewish::year_month_last(jewish::year(8)).month() == jewish::month(13));
-	static_assert(jewish::year(11).is_leap());
-	static_assert(jewish::year_month_last(jewish::year(11)).month() == jewish::month(13));
-	static_assert(jewish::year(14).is_leap());
-	static_assert(jewish::year_month_last(jewish::year(14)).month() == jewish::month(13));
-	static_assert(jewish::year(17).is_leap());
-	static_assert(jewish::year_month_last(jewish::year(17)).month() == jewish::month(13));
-	static_assert(jewish::year(19).is_leap());
-	static_assert(jewish::year_month_last(jewish::year(19)).month() == jewish::month(13));
-
 	{
 		auto ym = jewish::year_month(y, jewish::month(1));
 		for (int i = 0; i < 80000; i++) {
 			auto a = ym + jewish::months(i);
+			auto a1 = jewish::year_month_day(a.year(), a.month(), jewish::day(1));
+
 			auto b = jewish::year_month_day_last(a.year(), jewish::month_day_last(a.month()));
 			auto bb = jewish::year_month_weekday_last(a.year(), a.month(), jewish::weekday_last(jewish::Shabbat));
 			auto bbb = jewish::year_month_weekday(a.year(), a.month(), jewish::Shlishi[2]);
-			auto c = (a.year()+jewish::years(1)).to_days() - a.year().to_days();
-			std::cout << jewish::year_month_day(jewish::year_month_day(date::sys_days(b)))
-				<< " <= " << date::year_month_day(date::sys_days(b))
+			std::cout << jewish::year_month_day(date::sys_days(b))
+				<< " <= " << date::year_month_day(b)
+				<< " <= " << date::year_month_day(a1)
 				<< " <= " << jewish::year_month_day(b)
 				<< " <= " << jewish::year_month_day(bbb) <<  '\n';
-			assert (jewish::year_month_day(date::year_month_day(date::sys_days(b))) == jewish::year_month_day(b));
+			assert (jewish::year_month_day(date::year_month_day(b)) == jewish::year_month_day(b));
 		}
 	}
 	return 0;
