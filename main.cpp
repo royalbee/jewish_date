@@ -110,7 +110,8 @@ class weekday
 	constexpr unsigned iso_encoding() const noexcept { return (unsigned[7]){6, 7, 2, 3, 4, 5}[wd_]; }
 
 	constexpr bool ok() const noexcept {return wd_ <= 6;}
-	constexpr auto operator<=>(const weekday&) const = default;
+	constexpr bool operator==(const weekday&) const = default;
+	constexpr bool operator!=(const weekday&) const = default;
 
 	constexpr weekday_indexed operator[](unsigned index) const noexcept;// { return {*this, index}; }
 	constexpr weekday_last    operator[](last_spec)      const noexcept;
@@ -184,17 +185,18 @@ static constexpr weekday Shabbat(7u);
 // weekday_indexed
 class weekday_indexed
 {
-    unsigned char wd_    : 4;
-    unsigned char index_ : 4;
+	unsigned char index_ : 4;
+	unsigned char wd_    : 4;
 
-public:
-    weekday_indexed() = default;
-    constexpr weekday_indexed(const jewish::weekday& wd, unsigned index) noexcept : wd_(static_cast<unsigned>(wd)), index_(index) {}
+	public:
+	weekday_indexed() = default;
+	constexpr weekday_indexed(const jewish::weekday& wd, unsigned index) noexcept : wd_(static_cast<unsigned>(wd)), index_(index) {}
 
-    constexpr jewish::weekday weekday() const noexcept { return jewish::weekday(static_cast<unsigned>(wd_)); }
-    constexpr unsigned index() const noexcept { return index_; }
-    constexpr bool ok() const noexcept { return weekday().ok() && index() <= 6; }
-    constexpr auto operator<=>(const weekday_indexed&) const noexcept = default;
+	constexpr jewish::weekday weekday() const noexcept { return jewish::weekday(static_cast<unsigned>(wd_)); }
+	constexpr unsigned index() const noexcept { return index_; }
+	constexpr bool ok() const noexcept { return weekday().ok() && index() <= 6; }
+	constexpr bool operator==(const weekday_indexed&) const = default;
+	constexpr bool operator!=(const weekday_indexed&) const = default;
 };
 
 template<class CharT, class Traits>
@@ -213,15 +215,16 @@ constexpr weekday_indexed weekday::operator[](unsigned index) const noexcept { r
 
 class weekday_last
 {
-    jewish::weekday wd_;
+	jewish::weekday wd_;
 
-public:
-    weekday_last() = default;
-    explicit constexpr weekday_last(const jewish::weekday& wd) noexcept : wd_(wd) {}
+	public:
+	weekday_last() = default;
+	explicit constexpr weekday_last(const jewish::weekday& wd) noexcept : wd_(wd) {}
 
-    constexpr jewish::weekday weekday() const noexcept { return wd_; }
-    constexpr bool ok() const noexcept { return wd_.ok(); }
-    constexpr auto operator<=>(const weekday_last&) const noexcept = default;
+	constexpr jewish::weekday weekday() const noexcept { return wd_; }
+	constexpr bool ok() const noexcept { return wd_.ok(); }
+	constexpr bool operator==(const weekday_last&) const = default;
+	constexpr bool operator!=(const weekday_last&) const = default;
 };
 
 template<class CharT, class Traits>
@@ -517,7 +520,8 @@ class month_weekday_last
 	constexpr jewish::weekday_last weekday_last() const noexcept { return wdl_; }
 
 	constexpr bool ok() const noexcept { return m_.ok() && wdl_.ok(); }
-	constexpr auto operator<=>(const month_weekday_last&) const noexcept = default;
+	constexpr bool operator==(const month_weekday_last&) const noexcept = default;
+	constexpr bool operator!=(const month_weekday_last&) const noexcept = default;
 };
 
 template<class CharT, class Traits>
@@ -626,7 +630,7 @@ class year_month_day
 	constexpr year_month_day& operator+=(const years& y)  noexcept {*this = *this + y; return *this;}
 	constexpr year_month_day& operator-=(const years& y)  noexcept {*this = *this - y; return *this;}
 
-	constexpr auto operator<=>(const year_month_day&) const = default;
+	constexpr auto operator<=>(const year_month_day&) const noexcept = default;
 
 	constexpr jewish::year           year()           const noexcept {return y_;}
 	constexpr jewish::month          month()          const noexcept {return m_;}
@@ -637,15 +641,15 @@ class year_month_day
 		return year_month(year(), month()).ok() && day().ok()
 			&& day() <= year_month_day_last(year(), month_day_last(month())).day();
 	}
-	operator sys_days() { return sys_days(days_since_creation() - sys_epoch_delta); }
-	explicit operator local_days() { return local_days(days_since_creation() - sys_epoch_delta); }
+	constexpr operator sys_days() { return sys_days(days_since_creation() - sys_epoch_delta); }
+	constexpr explicit operator local_days() { return local_days(days_since_creation() - sys_epoch_delta); }
 	private:
 	static constexpr auto sys_epoch_delta = year_month(jewish::year(5730), jewish::month(4)).days_since_creation()+days(23);
-	days days_since_creation() {
+	constexpr days days_since_creation() {
 		auto ds = year_month(year(), month()).days_since_creation() + days(static_cast<unsigned>(day()));
 		return ds;
 	}
-	year_month_day from_sys_days(days ds)
+	constexpr year_month_day from_sys_days(days ds)
 	{
 		ds+=sys_epoch_delta;
 		auto ym = year_month::from_creation_months(floor<months>(ds-floor<days>(molad_tohu)));
@@ -750,6 +754,8 @@ public:
     constexpr explicit operator local_days() const noexcept { return local_days(days_since_sys_epoch()); }
     constexpr bool ok() const noexcept { return jewish::year_month(year(), month()).ok(); }
 
+    constexpr bool operator==(const year_month_weekday_last&) const noexcept = default;
+    constexpr bool operator!=(const year_month_weekday_last&) const noexcept = default;
 private:
     constexpr days days_since_sys_epoch() const noexcept
     {
@@ -846,6 +852,8 @@ public:
 		    days((wdi_.index()-1)*7 + 1);
 	    return d2.count() <= static_cast<unsigned>(year_month_day_last(year(), month_day_last(month())).day());
     }
+    constexpr bool operator==(const year_month_weekday&) const noexcept = default;
+    constexpr bool operator!=(const year_month_weekday&) const noexcept = default;
 private:
     static constexpr year_month_weekday from_sys_days(days d) noexcept
     {
@@ -974,7 +982,7 @@ constexpr inline year_month_weekday_last operator/(const month_weekday_last& mwd
 #include <cassert>
 #include <string>
 #include <algorithm>
-
+#include <iomanip>
 int main() {
 	using namespace jewish;
 	auto ym = jewish::year(5781) / 1;
@@ -983,20 +991,27 @@ int main() {
 	auto yml = ym.year() / last;
 	auto ymdl = ym.year() / last / last;
 
+	static constexpr std::string_view col_sep = "     ";
 	for(auto r = ym; r <= yml ; r += months(3)) {
+		for(auto m = r, lr = std::min(m+months(3), yml+months(1)); m < lr; m+=months(1)) {
+			std::cout << std::setfill(' ') << std::setw(20) << m.month();
+			std::cout << std::setw(0) << ' ' << col_sep;
+		}
+		std::cout << '\n';
 		for(unsigned w : {1, 2, 3, 4, 5, 6}) {
 			for(auto m = r, lr = std::min(m+months(3), yml+months(1)); m < lr; m+=months(1)) {
-				auto mb = sys_days(m.year() / m.month() / 1);
-				auto me = sys_days(m.year() / m.month() / last);
-				auto we = sys_days(m / Shabbat[w]);
-				for(auto d = sys_days(we)-days(6); d <= we; d+=days(1))
+				for(sys_days we = m / Shabbat[w],
+						d = we - days(6),
+						mb = m.year() / m.month() / 1,
+						me = m.year() / m.month() / last
+						; d <= we; d+=days(1))
 				{
 					if (d >= mb && d <= me)
 						std::cout << year_month_day(d).day() << ' ';
 					else
 						std::cout << "   ";
 				}
-				std::cout << "     ";
+				std::cout << col_sep;
 			}
 			std::cout << '\n';
 		}
