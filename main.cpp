@@ -26,10 +26,11 @@ using molad_period = details::ratio_add_t<std::ratio_multiply<days::period, std:
       std::ratio_multiply<parts::period, std::ratio<793>>>;
 using months = std::chrono::duration<int, molad_period>;
 using years  = std::chrono::duration<int, std::ratio_multiply<molad_period, std::ratio<235, 19>>>; 
+
+// day
 class day;
 constexpr day  operator+(const day&  x, const days& y) noexcept;
 constexpr day  operator-(const day&  x, const days& y) noexcept;
-
 class day
 {
 	unsigned char d_;
@@ -194,7 +195,7 @@ class weekday_indexed
 
 	constexpr jewish::weekday weekday() const noexcept { return jewish::weekday(static_cast<unsigned>(wd_)); }
 	constexpr unsigned index() const noexcept { return index_; }
-	constexpr bool ok() const noexcept { return weekday().ok() && index() <= 6; }
+	constexpr bool ok() const noexcept { return weekday().ok() && index() <= 6 && index() >= 1; }
 	constexpr bool operator==(const weekday_indexed&) const = default;
 	constexpr bool operator!=(const weekday_indexed&) const = default;
 };
@@ -236,6 +237,60 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const weekday_last& wdl) {
 
 constexpr weekday_last weekday::operator[](last_spec) const noexcept { return weekday_last{*this}; }
 
+// month_meuuberet
+class month_regular;
+class month_meuberet
+{
+	unsigned char m_;
+
+	public:
+	month_meuberet() = default;
+	explicit constexpr month_meuberet(unsigned m) noexcept : m_(m) {}
+	explicit constexpr month_meuberet(month_regular m) noexcept;
+
+	constexpr explicit operator unsigned() const noexcept {return m_;}
+	constexpr bool ok() const noexcept {return 1 <= m_ && m_ <= 13;}
+	constexpr bool operator==(const month_meuberet&) const noexcept = default;
+	constexpr bool operator!=(const month_meuberet&) const noexcept = default;
+};
+
+
+// month_regular
+class month_regular
+{
+	unsigned char m_;
+
+	public:
+	month_regular() = default;
+	explicit constexpr month_regular(unsigned m) noexcept : m_(m) {}
+	explicit constexpr month_regular(month_meuberet m) noexcept
+		: month_regular([](unsigned i){ return i>5?--i:i; }(static_cast<unsigned>(m))) {}
+
+	constexpr explicit operator unsigned() const noexcept {return m_;}
+	constexpr bool ok() const noexcept {return 1 <= m_ && m_ <= 12;}
+	constexpr bool operator==(const month_regular&) const noexcept = default;
+	constexpr bool operator!=(const month_regular&) const noexcept = default;
+};
+
+constexpr month_meuberet::month_meuberet(month_regular m) noexcept
+	: month_meuberet([](unsigned i){ return i>5?++i:i; }(static_cast<unsigned>(m))) {}
+
+static constexpr month_regular Tishrei(1u);
+static constexpr month_regular Cheshvan(2u);
+static constexpr month_regular Kislev(3u);
+static constexpr month_regular Tevet(4u);
+static constexpr month_regular Shevat(5u);
+static constexpr month_regular Adar(6u);
+static constexpr month_regular Nisan(7u);
+static constexpr month_regular Iyar(8u);
+static constexpr month_regular Sivan(9u);
+static constexpr month_regular Tammuz(10u);
+static constexpr month_regular Av(11u);
+static constexpr month_regular Elul(12u);
+static constexpr month_meuberet Adar_1(6u);
+static constexpr month_meuberet Adar_2(7u);
+
+// month
 class month;
 constexpr month  operator+(const month&  x, const months& y) noexcept;
 constexpr month  operator-(const month&  x, const months& y) noexcept;
@@ -245,7 +300,9 @@ class month
 
 	public:
 	month() = default;
-	explicit constexpr month(unsigned m) noexcept : m_(static_cast<decltype(m_)>(m)) {}
+	explicit constexpr month(unsigned m) noexcept : m_(m) {}
+	explicit constexpr month(month_regular m) noexcept : month(static_cast<unsigned>(m)) {}
+	explicit constexpr month(month_meuberet m) noexcept : month(static_cast<unsigned>(m)) {}
 
 	constexpr month& operator++()    noexcept {++m_; return *this;}
 	constexpr month  operator++(int) noexcept {auto tmp(*this); ++(*this); return tmp;}
@@ -260,7 +317,7 @@ class month
 	constexpr auto operator<=>(const month&) const noexcept = default;
 };
 
-constexpr months  operator-(const month&  x, const month& y) noexcept
+constexpr months operator-(const month& x, const month& y) noexcept
 {
 	return months(static_cast<unsigned>(x) - static_cast<unsigned>(y));
 }
@@ -353,25 +410,35 @@ operator<<(std::basic_ostream<chart, traits>& os, const year& y)
 { return os << static_cast<int>(y); }
 
 
+// year_month_last
+class year_month_last;
+constexpr year_month_last operator+(const year_month_last& yml, const years& dy) noexcept;
+constexpr year_month_last operator-(const year_month_last& yml, const years& dy) noexcept;
 class year_month_last
 {
 	jewish::year           y_;
 
 	public:
+	year_month_last() = default;
 	constexpr year_month_last(const jewish::year& y) noexcept : y_(y) {}
 
-	constexpr year_month_last& operator+=(const years& y)  noexcept { y_ += y; return *this; }
-	constexpr year_month_last& operator-=(const years& y)  noexcept { y_ -= y; return *this; }
+	constexpr year_month_last& operator+=(const years& y)  noexcept { *this = *this + y; return *this; }
+	constexpr year_month_last& operator-=(const years& y)  noexcept { *this = *this - y; return *this; }
 
-	constexpr jewish::year           year()           const noexcept { return y_; }
+	constexpr jewish::year year() const noexcept { return y_; }
 	constexpr jewish::month month() const noexcept {
 		return jewish::month(((y_+years(1)).months_since_creation() - y_.months_since_creation()).count());
 	}
 
 	constexpr bool ok() const noexcept { return y_ >= jewish::year(1); }
-	constexpr auto operator<=>(const year_month_last&) const noexcept = default;
+	constexpr bool operator==(const year_month_last&) const noexcept = default;
+	constexpr bool operator!=(const year_month_last&) const noexcept = default;
 };
 
+constexpr year_month_last operator+(const year_month_last& yml, const years& dy) noexcept { return {yml.year() + dy}; }
+constexpr year_month_last operator-(const year_month_last& yml, const years& dy) noexcept { return yml + (-dy); }
+
+// year_month
 class year_month;
 template<class = details::unspecified_month_disambiguator>
 constexpr year_month operator+(const year_month& ym, const months& dm) noexcept;
@@ -408,14 +475,14 @@ class year_month
 	{
 		return months(static_cast<unsigned>(m_)-1) + y_.months_since_creation();
 	}
-	static constexpr year_month from_creation_months(months m)
+	static constexpr year_month from_creation_months(months m) noexcept
 	{
 		auto y = jewish::year(1 + ((m.count()+1)*19-2)/235);
 		auto dm = m - y.months_since_creation();
 
 		return year_month(y, jewish::month(dm.count() + 1));
 	}
-	constexpr days days_since_creation()
+	constexpr days days_since_creation() const noexcept
 	{
 		auto m = static_cast<unsigned>(month());
 		auto ds = year().days_since_creation();
@@ -580,6 +647,8 @@ class year_month_day_last
 	constexpr operator sys_days() const noexcept;
 	constexpr explicit operator local_days() const noexcept;
 
+	constexpr bool operator == (year_month_day_last const& ymdl) const noexcept = default;
+	constexpr bool operator != (year_month_day_last const& ymdl) const noexcept = default;
 	constexpr bool ok() const noexcept { return year_month(year(), month()).ok(); }
 };
 
@@ -939,6 +1008,8 @@ constexpr inline month_weekday_last operator/(const weekday_last& wdl, int m) no
 
 // year_month from operator/()
 constexpr inline year_month operator/(const year& y, const month& m) noexcept { return {y, m}; }
+constexpr inline year_month operator/(const year& y, const month_regular& m) noexcept { return {y, y.is_leap() ? month(month_meuberet(m)) : month(m) }; }
+constexpr inline year_month operator/(const year& y, const month_meuberet& m) noexcept { return {y, y.is_leap() ? month(m) : month(month_regular(m))}; }
 constexpr inline year_month operator/(const year& y, int   m) noexcept { return y / month(static_cast<unsigned>(m)); }
 constexpr inline year_month_last operator/(const year& y, last_spec) noexcept { return y; }
 
@@ -985,26 +1056,78 @@ constexpr inline year_month_weekday_last operator/(const month_weekday_last& mwd
 #include <iomanip>
 int main() {
 	using namespace jewish;
-	auto ym = jewish::year(5781) / 1;
-	auto b = ym / 1;
+	{
+		constexpr auto maya = date::year(2003)/date::month(7)/10;
+		std::cout << year_month_day(maya) << '\n';
+		std::cout << year_month_day(maya).year().is_leap() << '\n';
+	}
+	{
+		constexpr auto y = jewish::year(5779);
+		constexpr auto ymdl = y / last / last;
+		constexpr auto yedl = y / Elul / last;
+		static_assert(y.is_leap());
+		static_assert(y / Adar == y / Adar_2);
+		static_assert(ymdl == yedl);
+	}
 
-	auto yml = ym.year() / last;
-	auto ymdl = ym.year() / last / last;
+	{
+		constexpr auto ym = jewish::year(5781) / Tishrei;
 
-	static constexpr std::string_view col_sep = "     ";
-	for(auto r = ym; r <= yml ; r += months(3)) {
-		for(auto m = r, lr = std::min(m+months(3), yml+months(1)); m < lr; m+=months(1)) {
-			std::cout << std::setfill(' ') << std::setw(20) << m.month();
-			std::cout << std::setw(0) << ' ' << col_sep;
+		auto yml = (ym.year() / last) + months(1);
+		constexpr auto ymdl = ym.year() / last / last;
+		constexpr auto yedl = ym.year() / Elul / last;
+		static_assert(ymdl == yedl);
+	}
+
+	auto month_name = [](year_month ym) {
+		auto m = static_cast<unsigned>(ym.month());
+		if (ym.year().is_leap()) {
+			if (m == 6) return "Adar 1";
+			if (m == 7) return "Adar 2";
+			if (m > 5) m--;
 		}
+		switch (m) {
+			case 1: return "Tishrei";
+			case 2: return "Cheshvan";
+			case 3: return "Kislev";
+			case 4: return "Tevet";
+			case 5: return "Shevat";
+			case 6: return "Adar";
+			case 7: return "Nisan";
+			case 8: return "Iyar";
+			case 9: return "Sivan";
+			case 10: return "Tammuz";
+			case 11: return "Av";
+			case 12: return "Elul";
+			default: return "<ulnown month>";
+		}
+	};
+
+	constexpr auto y = jewish::year(5779);
+	static constexpr std::string_view col_sep = "| ";
+	static constexpr auto months_per_row = jewish::months(5);
+	for(auto r = y / Tishrei, re = (y + years(1)) / Tishrei; r < re ; r += months_per_row) {
+		auto for_each_row_months =
+			[=, lr = std::min(r + months_per_row, re)](auto f) {
+				for (auto m = r; m != lr; m+=months(1)) f(m);
+			};
+		auto row_sep = [&] {
+			std::cout << '+';
+			for_each_row_months([](auto ym) { std::cout << std::setfill('-') << std::setw(23) << '+'; });
+			std::cout << '\n';
+		};
+		if (r == y / Tishrei) row_sep();
+		std::cout << "| ";
+		for_each_row_months([&](auto ym) {
+			std::cout << std::setfill(' ') << std::setw(20) << month_name(ym) << ' ' << col_sep;
+		});
 		std::cout << '\n';
+		row_sep();
 		for(unsigned w : {1, 2, 3, 4, 5, 6}) {
-			for(auto m = r, lr = std::min(m+months(3), yml+months(1)); m < lr; m+=months(1)) {
-				for(sys_days we = m / Shabbat[w],
-						d = we - days(6),
-						mb = m.year() / m.month() / 1,
-						me = m.year() / m.month() / last
-						; d <= we; d+=days(1))
+			std::cout << "| ";
+			for_each_row_months([w](auto ym) {
+				sys_days mb = ym / 1, me = ym / last;
+				for(sys_days we = ym / Shabbat[w], d = we - days(6) ; d <= we; d+=days(1))
 				{
 					if (d >= mb && d <= me)
 						std::cout << year_month_day(d).day() << ' ';
@@ -1012,43 +1135,42 @@ int main() {
 						std::cout << "   ";
 				}
 				std::cout << col_sep;
-			}
+			});
 			std::cout << '\n';
 		}
-		std::cout << '\n';
+		row_sep();
 	}
 
-	for(date::sys_days i = b, e = ym / last; i < e; i+=date::days(1)){
-		std::cout << jewish::year_month_day(i).day() << ' ';
-	}
 	std::cout << '\n';
-	auto rh = jewish::year(5781) / 1 / 1;
+	auto rh = jewish::year(5781) / Tishrei / 1;
 	auto rhd = date::year_month_day(rh);
 	auto rhh = date::year_month_day(rhd);
 	std::cout << rhd << "\n";
 	std::cout << rhh << "\n";
-	auto y = jewish::year(1);
-	for (int i = 0; i < 10000; i++) {
-		auto a = jewish::year_month_last(y+jewish::years(i));
-		assert(a.month() == jewish::month(a.year().is_leap() ? 13 : 12));
-	}
-
-
 	{
-		auto ym = jewish::year_month(y, jewish::month(1));
-		for (int i = 0; i < 80000; i++) {
-			auto a = ym + jewish::months(i);
-			auto a1 = jewish::year_month_day(a.year(), a.month(), jewish::day(1));
+		auto y = jewish::year(1);
+		for (int i = 0; i < 10000; i++) {
+			auto a = jewish::year_month_last(y+jewish::years(i));
+			assert(a.month() == jewish::month(a.year().is_leap() ? 13 : 12));
+		}
 
-			auto b = jewish::year_month_day_last(a.year(), jewish::month_day_last(a.month()));
-			auto bb = jewish::year_month_weekday_last(a.year() / a.month() / jewish::Shabbat[last]);
-			auto bbb = jewish::year_month_weekday(a.year() / a.month() / jewish::Shlishi[2]);
-			std::cout << jewish::year_month_day(date::sys_days(b))
-				<< " <= " << date::year_month_day(b)
-				<< " <= " << date::year_month_day(a1)
-				<< " <= " << jewish::year_month_day(b)
-				<< " <= " << jewish::year_month_day(bbb) <<  '\n';
-			assert (jewish::year_month_day(date::year_month_day(b)) == jewish::year_month_day(b));
+
+		{
+			auto ym = jewish::year_month(y, jewish::month(1));
+			for (int i = 0; i < 80000; i++) {
+				auto a = ym + jewish::months(i);
+				auto a1 = jewish::year_month_day(a.year(), a.month(), jewish::day(1));
+
+				auto b = jewish::year_month_day_last(a.year(), jewish::month_day_last(a.month()));
+				auto bb = jewish::year_month_weekday_last(a.year() / a.month() / jewish::Shabbat[last]);
+				auto bbb = jewish::year_month_weekday(a.year() / a.month() / jewish::Shlishi[2]);
+				std::cout << jewish::year_month_day(date::sys_days(b))
+					<< " <= " << date::year_month_day(b)
+					<< " <= " << date::year_month_day(a1)
+					<< " <= " << jewish::year_month_day(b)
+					<< " <= " << jewish::year_month_day(bbb) <<  '\n';
+				assert (jewish::year_month_day(date::year_month_day(b)) == jewish::year_month_day(b));
+			}
 		}
 	}
 	return 0;
