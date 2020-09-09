@@ -276,6 +276,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const weekday_last& wdl) {
 constexpr weekday_last weekday::operator[](last_spec) const noexcept { return weekday_last{*this}; }
 
 // month_meuuberet
+class month;
 class month_regular;
 class month_leap
 {
@@ -284,6 +285,7 @@ class month_leap
 	public:
 	month_leap() = default;
 	explicit constexpr month_leap(unsigned m) noexcept : m_(m) {}
+	explicit constexpr month_leap(month m) noexcept;
 	explicit constexpr month_leap(month_regular m) noexcept;
 
 	constexpr explicit operator unsigned() const noexcept {return m_;}
@@ -303,6 +305,7 @@ class month_regular
 	public:
 	month_regular() = default;
 	explicit constexpr month_regular(unsigned m) noexcept : m_(m) {}
+	explicit constexpr month_regular(month m) noexcept;
 	explicit constexpr month_regular(month_leap m) noexcept
 		: month_regular(from_leap_month(static_cast<unsigned>(m))) {}
 
@@ -329,7 +332,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const month_regular& mr) {
 		case 9: return os << "Sivan";
 		case 10: return os << "Tammuz";
 		case 11: return os << "Av";
-		case 11: return os << "Elul";
+		case 12: return os << "Elul";
 		default: return os << "<" << static_cast<unsigned>(mr) << "uknown month>";
 	}
 }
@@ -418,6 +421,8 @@ std::basic_ostream<chart, traits>&
 operator<<(std::basic_ostream<chart, traits>& os, const month& y)
 { return os << static_cast<unsigned>(y); }
 
+constexpr month_regular::month_regular(month m) noexcept : month_regular(static_cast<unsigned>(m)) {}
+constexpr month_leap::month_leap(month m) noexcept : month_leap(static_cast<unsigned>(m)) {}
 // year
 class year;
 constexpr year  operator+(const year&  x, const years& y) noexcept;
@@ -1428,30 +1433,6 @@ int main() {
 		static_assert(ymdl == yedl);
 	}
 
-	auto month_name = [](year_month ym) {
-		auto m = static_cast<unsigned>(ym.month());
-		if (ym.year().is_leap()) {
-			if (m == 6) return "Adar 1";
-			if (m == 7) return "Adar 2";
-			if (m > 7) m--;
-		}
-		switch (m) {
-			case 1: return "Tishrei";
-			case 2: return "Cheshvan";
-			case 3: return "Kislev";
-			case 4: return "Tevet";
-			case 5: return "Shevat";
-			case 6: return "Adar";
-			case 7: return "Nisan";
-			case 8: return "Iyar";
-			case 9: return "Sivan";
-			case 10: return "Tammuz";
-			case 11: return "Av";
-			case 12: return "Elul";
-			default: return "<ulnown month>";
-		}
-	};
-
 	constexpr auto y = jewish::year(5779);
 	static constexpr std::string_view col_sep = "| ";
 	static constexpr auto months_per_row = jewish::months(5);
@@ -1468,7 +1449,9 @@ int main() {
 		if (r == y / Tishrei) row_sep();
 		std::cout << "| ";
 		for_each_row_months([&](auto ym) {
-			std::cout << std::setfill(' ') << std::setw(20) << month_name(ym) << ' ' << col_sep;
+				auto print = [](auto m){ std::cout << std::setfill(' ') << std::setw(20) << m << ' ' << col_sep;};
+				auto m = ym.month();
+				ym.year().is_leap() ? print(month_leap(m)) : print(month_regular(m));
 		});
 		std::cout << '\n';
 		row_sep();
