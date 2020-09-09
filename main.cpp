@@ -5,11 +5,64 @@
 namespace jewish {
 namespace details {
 struct unspecified_month_disambiguator {};
-template <typename ...Rs> struct ratio_add;
-template <typename ...Rs> using ratio_add_t = typename ratio_add<Rs...>::type;
-template <typename R0> struct ratio_add<R0> { using type = R0; };
-template <typename R0, typename ...Rs>
-struct ratio_add<R0, Rs...> { using type = std::ratio_add<R0, ratio_add_t<Rs...>>; };
+template<class CharT, class Traits = std::char_traits<CharT>>
+class save_istream
+{
+	protected:
+		std::basic_ios<CharT, Traits>& is_;
+		CharT fill_;
+		std::ios::fmtflags flags_;
+		std::streamsize width_;
+		std::basic_ostream<CharT, Traits>* tie_;
+		std::locale loc_;
+
+	public:
+		~save_istream()
+		{
+			is_.fill(fill_);
+			is_.flags(flags_);
+			is_.width(width_);
+			is_.imbue(loc_);
+			is_.tie(tie_);
+		}
+
+		save_istream(const save_istream&) = delete;
+		save_istream& operator=(const save_istream&) = delete;
+
+		explicit save_istream(std::basic_ios<CharT, Traits>& is)
+			: is_(is)
+			  , fill_(is.fill())
+			  , flags_(is.flags())
+			  , width_(is.width(0))
+			  , tie_(is.tie(nullptr))
+			  , loc_(is.getloc())
+	{
+		if (tie_ != nullptr)
+			tie_->flush();
+	}
+};
+
+template<class CharT, class Traits = std::char_traits<CharT>>
+class save_ostream : private save_istream<CharT, Traits>
+{
+	public:
+		~save_ostream()
+		{
+			if ((this->flags_ & std::ios::unitbuf) &&
+					std::uncaught_exceptions() == 0 &&
+					this->is_.good())
+				this->is_.rdbuf()->pubsync();
+		}
+
+		save_ostream(const save_ostream&) = delete;
+		save_ostream& operator=(const save_ostream&) = delete;
+
+		explicit save_ostream(std::basic_ios<CharT, Traits>& os)
+			: save_istream<CharT, Traits>(os)
+		{
+		}
+};
+
 }
 using last_spec = date::last_spec; //std::chrono::sys_days
 using date::last;
@@ -21,9 +74,9 @@ using parts = std::chrono::duration<int, std::ratio_divide<std::chrono::hours::p
 
 static constexpr auto molad_tohu = days(2) + std::chrono::hours(5) + parts(204);
 
-using molad_period = details::ratio_add_t<std::ratio_multiply<days::period, std::ratio<29>>,
-      std::ratio_multiply<std::chrono::hours::period, std::ratio<12>>,
-      std::ratio_multiply<parts::period, std::ratio<793>>>;
+using molad_period = std::ratio_add<std::ratio_multiply<days::period, std::ratio<29>>,
+      std::ratio_add<std::ratio_multiply<std::chrono::hours::period, std::ratio<12>>,
+      std::ratio_multiply<parts::period, std::ratio<793>>>>;
 using months = std::chrono::duration<int, molad_period>;
 using years  = std::chrono::duration<int, std::ratio_multiply<molad_period, std::ratio<235, 19>>>; 
 
@@ -54,21 +107,21 @@ class day
 
 constexpr day  operator+(const day&  x, const days& y) noexcept
 {
-    return day{static_cast<unsigned>(x) + static_cast<unsigned>(y.count())};
+	return day{static_cast<unsigned>(x) + static_cast<unsigned>(y.count())};
 }
 
-constexpr day  operator-(const day&  x, const days& y) noexcept { return x + -y; }
+constexpr day  operator-(const day&  x, const days& y) noexcept { return x + (-y); }
 constexpr days operator-(const day&  x, const day&  y) noexcept
 {
-    return days(static_cast<days::rep>(static_cast<unsigned>(x)
-                                     - static_cast<unsigned>(y)));
+	return days(static_cast<days::rep>(static_cast<unsigned>(x)
+				- static_cast<unsigned>(y)));
 }
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits>& os, const day& d)
 {
-	//jewish::detail::save_ostream<CharT, Traits> _(os);
+	details::save_ostream<CharT, Traits> _(os);
 	os.fill('0');
 	os.flags(std::ios::dec | std::ios::right);
 	os.width(2);
@@ -107,14 +160,14 @@ class weekday
 	constexpr weekday& operator-=(const days& d) noexcept { *this = *this - d; return *this; }
 
 	constexpr explicit operator unsigned() const noexcept { return static_cast<unsigned>(wd_); }
-	constexpr unsigned c_encoding() const noexcept { return unsigned{static_cast<unsigned int>((wd_+6)%7)}; }
+	constexpr unsigned c_encoding() const noexcept { return static_cast<unsigned>((wd_+6)%7); }
 	constexpr unsigned iso_encoding() const noexcept { return (unsigned[7]){6, 7, 2, 3, 4, 5}[wd_]; }
 
 	constexpr bool ok() const noexcept {return wd_ <= 6;}
 	constexpr bool operator==(const weekday&) const = default;
 	constexpr bool operator!=(const weekday&) const = default;
 
-	constexpr weekday_indexed operator[](unsigned index) const noexcept;// { return {*this, index}; }
+	constexpr weekday_indexed operator[](unsigned index) const noexcept;
 	constexpr weekday_last    operator[](last_spec)      const noexcept;
 
 	friend constexpr inline days operator-(const weekday& x, const weekday& y) noexcept
@@ -141,33 +194,18 @@ constexpr inline weekday operator+(const days& x, const weekday& y) noexcept { r
 constexpr inline weekday operator-(const weekday& x, const days& y) noexcept { return x + -y; }
 
 template<class CharT, class Traits>
-inline
-	std::basic_ostream<CharT, Traits>&
+inline std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits>& os, const weekday& wd)
 {
 	switch (static_cast<unsigned>(wd))
 	{
-		case 0:
-			os << "Shabbat";
-			break;
-		case 1:
-			os << "Rishon";
-			break;
-		case 2:
-			os << "Sheni";
-			break;
-		case 3:
-			os << "Shlishi";
-			break;
-		case 4:
-			os << "Revii";
-			break;
-		case 5:
-			os << "Hamishi";
-			break;
-		case 6:
-			os << "Shishi";
-			break;
+		case 0: os << "Shabbat"; break;
+		case 1: os << "Rishon"; break;
+		case 2: os << "Sheni"; break;
+		case 3: os << "Shlishi"; break;
+		case 4: os << "Revii"; break;
+		case 5: os << "Hamishi"; break;
+		case 6: os << "Shishi"; break;
 		default:
 			os << static_cast<unsigned>(wd) << " is not a valid weekday";
 			break;
@@ -229,7 +267,7 @@ class weekday_last
 };
 
 template<class CharT, class Traits>
-std::basic_ostream<CharT, Traits>&
+inline std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits>& os, const weekday_last& wdl) {
 	return os << wdl.weekday() << "[last]";
 }
@@ -252,6 +290,8 @@ class month_leap
 	constexpr bool ok() const noexcept {return 1 <= m_ && m_ <= 13;}
 	constexpr bool operator==(const month_leap&) const noexcept = default;
 	constexpr bool operator!=(const month_leap&) const noexcept = default;
+	private:
+	static constexpr unsigned from_regular_month(unsigned i) noexcept { return i>5?++i:i; }
 };
 
 
@@ -264,16 +304,60 @@ class month_regular
 	month_regular() = default;
 	explicit constexpr month_regular(unsigned m) noexcept : m_(m) {}
 	explicit constexpr month_regular(month_leap m) noexcept
-		: month_regular([](unsigned i){ return i>5?--i:i; }(static_cast<unsigned>(m))) {}
+		: month_regular(from_leap_month(static_cast<unsigned>(m))) {}
 
 	constexpr explicit operator unsigned() const noexcept {return m_;}
 	constexpr bool ok() const noexcept {return 1 <= m_ && m_ <= 12;}
 	constexpr bool operator==(const month_regular&) const noexcept = default;
 	constexpr bool operator!=(const month_regular&) const noexcept = default;
+	private:
+	static constexpr unsigned from_leap_month(unsigned i) noexcept { return i>5?--i:i; }
 };
 
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits>& os, const month_regular& mr) {
+	switch (static_cast<unsigned>(mr)) {
+		case 1: return os << "Tishrei";
+		case 2: return os << "Cheshvan";
+		case 3: return os << "Kislev";
+		case 4: return os << "Tevet";
+		case 5: return os << "Shevat";
+		case 6: return os << "Adar";
+		case 7: return os << "Nisan";
+		case 8: return os << "Iyar";
+		case 9: return os << "Sivan";
+		case 10: return os << "Tammuz";
+		case 11: return os << "Av";
+		case 11: return os << "Elul";
+		default: return os << "<" << static_cast<unsigned>(mr) << "uknown month>";
+	}
+}
+
 constexpr month_leap::month_leap(month_regular m) noexcept
-	: month_leap([](unsigned i){ return i>5?++i:i; }(static_cast<unsigned>(m))) {}
+	: month_leap(from_regular_month(static_cast<unsigned>(m))) {}
+
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits>& os, const month_leap& ml) {
+	switch (static_cast<unsigned>(ml)) {
+		case 1: return os << "Tishrei";
+		case 2: return os << "Cheshvan";
+		case 3: return os << "Kislev";
+		case 4: return os << "Tevet";
+		case 5: return os << "Shevat";
+		case 6: return os << "Adar 1";
+		case 7: return os << "Adar 2";
+		case 8: return os << "Nisan";
+		case 9: return os << "Iyar";
+		case 10: return os << "Sivan";
+		case 11: return os << "Tammuz";
+		case 12: return os << "Av";
+		case 13: return os << "Elul";
+		default: return os << "<" << static_cast<unsigned>(ml) << "uknown month>";
+	}
+}
+
 
 static constexpr month_regular Tishrei(1u);
 static constexpr month_regular Cheshvan(2u);
@@ -378,12 +462,12 @@ class year
 		auto ds = floor<days>(ps);
 		auto wd = weekday(static_cast<unsigned>(ds.count()%7));
 		auto ps_left = ps - ds;
-		if (!is_leap() && wd == weekday(3U) && ps_left >= hours(9)+parts(204))
+		if (!is_leap() && wd == Shlishi && ps_left >= hours(9)+parts(204))
 		{
 			return ds + days(2);
 		} 
 		if (auto prev = *this - years(1);
-				prev.ok() && prev.is_leap() && wd == weekday(2U) && ps_left >= hours(15)+parts(589))
+				prev.ok() && prev.is_leap() && wd == Rishon && ps_left >= hours(15)+parts(589))
 		{
 			return ++ds;
 		}
@@ -392,7 +476,7 @@ class year
 			wd++;
 			ds++;
 		}
-		if (wd == weekday(1U) || wd == weekday(4U) || wd == weekday(6U))
+		if (wd == Rishon || wd == Revii || wd == Shishi)
 			ds++;
 		return ds;
 	}
@@ -515,13 +599,15 @@ template<class = details::unspecified_month_disambiguator>
 constexpr year_month operator+(const months& dm, const year_month& ym) noexcept { return ym+dm; }
 
 constexpr year_month operator+(const year_month& ym, const years& dy) noexcept {
+	auto y = ym.year() + dy;
+	auto m = ym.month();
 	auto from_leap = ym.year().is_leap();
-	auto to_leap = (ym.year() + dy).is_leap();
-	if (from_leap && !to_leap && ym.month() > jewish::month(5))
-		return year_month(ym.year()+dy, --ym.month());
-	if (!from_leap && to_leap && ym.month() > jewish::month(5))
-		return year_month(ym.year()+dy, ++ym.month());
-	return year_month(ym.year()+dy, ym.month());
+	auto to_leap = y.is_leap();
+	if (from_leap && !to_leap)
+		return year_month(y, month_leap(static_cast<unsigned>(m)));
+	if (!from_leap && to_leap)
+		return year_month(y, month_regular(static_cast<unsigned>(m)));
+	return year_month(y, m);
 }
 constexpr year_month operator+(const years& dy, const year_month& ym) noexcept { return ym + dy; }
 constexpr year_month operator-(const year_month& ym, const years& dy) noexcept { return ym + (-dy); }
@@ -833,8 +919,8 @@ class year_month_day_last
 template<class>
 constexpr inline year_month_day_last operator+(const year_month_day_last& ymdl, const months& dm) noexcept
 {
-    auto ym = year_month(ymdl.year(), ymdl.month()) + dm;
-    return year_month_day_last(ym.year(), month_day_last(ym.month()));
+	auto ym = year_month(ymdl.year(), ymdl.month()) + dm;
+	return year_month_day_last(ym.year(), month_day_last(ym.month()));
 }
 
 template<class = details::unspecified_month_disambiguator>
@@ -844,7 +930,7 @@ template<class>
 constexpr inline year_month_day_last operator-(const year_month_day_last& ymdl, const months& dm) noexcept { return ymdl + (-dm); }
 constexpr inline year_month_day_last operator+(const year_month_day_last& ymdl, const years& dy) noexcept
 {
-    return {ymdl.year()+dy, ymdl.month_day_last()};
+	return {ymdl.year()+dy, ymdl.month_day_last()};
 }
 
 constexpr inline year_month_day_last operator+(const years& dy, const year_month_day_last& ymdl) noexcept { return ymdl + dy; }
@@ -949,12 +1035,12 @@ constexpr inline year_month_day operator+(const year_month_day& ymd, const years
 
 constexpr inline year_month_day operator+(const years& dy, const year_month_day& ymd) noexcept
 {
-    return ymd + dy;
+	return ymd + dy;
 }
 
 constexpr inline year_month_day operator-(const year_month_day& ymd, const years& dy) noexcept
 {
-    return ymd + (-dy);
+	return ymd + (-dy);
 }
 
 template<class CharT, class Traits>
@@ -981,47 +1067,47 @@ operator-(const year_month_weekday_last& ymwdl, const years& dm) noexcept;
 
 class year_month_weekday_last
 {
-    jewish::year y_;
-    jewish::month m_;
-    jewish::weekday_last wdl_;
+	jewish::year y_;
+	jewish::month m_;
+	jewish::weekday_last wdl_;
 
-public:
-    year_month_weekday_last() = default;
-    constexpr year_month_weekday_last(const jewish::year& y, const jewish::month& m,
-                                      const jewish::weekday_last& wdl) noexcept
-	    : y_(y), m_(m), wdl_(wdl) {}
-    constexpr year_month_weekday_last(const jewish::year& y, const jewish::month_regular& m,
-                                      const jewish::weekday_last& wdl) noexcept
-	    : y_(y), m_(y.is_leap() ? jewish::month(month_leap(m)) : jewish::month(m)), wdl_(wdl) {}
-    constexpr year_month_weekday_last(const jewish::year& y, const jewish::month_leap& m,
-                                      const jewish::weekday_last& wdl) noexcept
-	    : y_(y), m_(y.is_leap() ? jewish::month(m) : jewish::month(month_regular(m))), wdl_(wdl) {}
+	public:
+	year_month_weekday_last() = default;
+	constexpr year_month_weekday_last(const jewish::year& y, const jewish::month& m,
+			const jewish::weekday_last& wdl) noexcept
+		: y_(y), m_(m), wdl_(wdl) {}
+	constexpr year_month_weekday_last(const jewish::year& y, const jewish::month_regular& m,
+			const jewish::weekday_last& wdl) noexcept
+		: y_(y), m_(y.is_leap() ? jewish::month(month_leap(m)) : jewish::month(m)), wdl_(wdl) {}
+	constexpr year_month_weekday_last(const jewish::year& y, const jewish::month_leap& m,
+			const jewish::weekday_last& wdl) noexcept
+		: y_(y), m_(y.is_leap() ? jewish::month(m) : jewish::month(month_regular(m))), wdl_(wdl) {}
 
-    template<class = details::unspecified_month_disambiguator>
-    constexpr year_month_weekday_last& operator+=(const months& m) noexcept { *this = *this + m; return *this; }
-    template<class = details::unspecified_month_disambiguator>
-    constexpr year_month_weekday_last& operator-=(const months& m) noexcept { *this = *this - m; return *this; }
-    constexpr year_month_weekday_last& operator+=(const years& y) noexcept { *this = *this + y; return *this; }
-    constexpr year_month_weekday_last& operator-=(const years& y) noexcept { *this = *this - y; return *this; }
+	template<class = details::unspecified_month_disambiguator>
+	constexpr year_month_weekday_last& operator+=(const months& m) noexcept { *this = *this + m; return *this; }
+	template<class = details::unspecified_month_disambiguator>
+	constexpr year_month_weekday_last& operator-=(const months& m) noexcept { *this = *this - m; return *this; }
+	constexpr year_month_weekday_last& operator+=(const years& y) noexcept { *this = *this + y; return *this; }
+	constexpr year_month_weekday_last& operator-=(const years& y) noexcept { *this = *this - y; return *this; }
 
-    constexpr jewish::year year() const noexcept { return y_; }
-    constexpr jewish::month month() const noexcept { return m_; }
-    constexpr jewish::weekday weekday() const noexcept { return wdl_.weekday(); }
-    constexpr jewish::weekday_last weekday_last() const noexcept { return wdl_; }
+	constexpr jewish::year year() const noexcept { return y_; }
+	constexpr jewish::month month() const noexcept { return m_; }
+	constexpr jewish::weekday weekday() const noexcept { return wdl_.weekday(); }
+	constexpr jewish::weekday_last weekday_last() const noexcept { return wdl_; }
 
-    constexpr operator sys_days() const noexcept { return sys_days(days_since_sys_epoch()); }
-    constexpr explicit operator local_days() const noexcept { return local_days(days_since_sys_epoch()); }
-    constexpr bool ok() const noexcept { return jewish::year_month(year(), month()).ok(); }
+	constexpr operator sys_days() const noexcept { return sys_days(days_since_sys_epoch()); }
+	constexpr explicit operator local_days() const noexcept { return local_days(days_since_sys_epoch()); }
+	constexpr bool ok() const noexcept { return jewish::year_month(year(), month()).ok(); }
 
-    constexpr bool operator==(const year_month_weekday_last&) const noexcept = default;
-    constexpr bool operator!=(const year_month_weekday_last&) const noexcept = default;
-private:
-    constexpr days days_since_sys_epoch() const noexcept
-    {
-	    auto const d = sys_days(year_month_day_last(year(), month_day_last(month())));
-	    auto const dd = jewish::weekday(d) - wdl_.weekday();
-	    return (d - dd).time_since_epoch();
-    }
+	constexpr bool operator==(const year_month_weekday_last&) const noexcept = default;
+	constexpr bool operator!=(const year_month_weekday_last&) const noexcept = default;
+	private:
+	constexpr days days_since_sys_epoch() const noexcept
+	{
+		auto const d = sys_days(year_month_day_last(year(), month_day_last(month())));
+		auto const dd = jewish::weekday(d) - wdl_.weekday();
+		return (d - dd).time_since_epoch();
+	}
 };
 
 template<class>
@@ -1029,7 +1115,7 @@ constexpr inline year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const months& dm) noexcept
 {
 	auto ym = year_month(ymwdl.year(), ymwdl.month()) + dm;
-    return {ymwdl.year(), ymwdl.month(), ymwdl.weekday_last()};
+	return {ymwdl.year(), ymwdl.month(), ymwdl.weekday_last()};
 }
 
 template<class = details::unspecified_month_disambiguator>
@@ -1043,7 +1129,7 @@ operator-(const year_month_weekday_last& ymwdl, const months& dm) noexcept { ret
 constexpr inline year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const years& dy) noexcept
 {
-    return {ymwdl.year()+dy, ymwdl.month(), ymwdl.weekday_last()};
+	return {ymwdl.year()+dy, ymwdl.month(), ymwdl.weekday_last()};
 }
 
 constexpr inline year_month_weekday_last
@@ -1054,7 +1140,7 @@ inline
 year_month_weekday_last
 operator-(const year_month_weekday_last& ymwdl, const years& dy) noexcept
 {
-    return ymwdl + (-dy);
+	return ymwdl + (-dy);
 }
 
  
@@ -1070,76 +1156,76 @@ constexpr year_month_weekday operator-(const year_month_weekday& ymwd, const yea
 
 class year_month_weekday
 {
-    jewish::year            y_;
-    jewish::month           m_;
-    jewish::weekday_indexed wdi_;
+	jewish::year            y_;
+	jewish::month           m_;
+	jewish::weekday_indexed wdi_;
 
-public:
-    year_month_weekday() = default;
-    constexpr year_month_weekday(const jewish::year& y, const jewish::month& m,
-                                   const jewish::weekday_indexed& wdi) noexcept
-	    : y_(y) , m_(m) , wdi_(wdi) {}
-    constexpr year_month_weekday(const jewish::year& y, const jewish::month_regular& m,
-                                      const jewish::weekday_indexed& wdi) noexcept
-	    : y_(y), m_(y.is_leap() ? jewish::month(month_leap(m)) : jewish::month(m)), wdi_(wdi) {}
-    constexpr year_month_weekday(const jewish::year& y, const jewish::month_leap& m,
-                                      const jewish::weekday_indexed& wdi) noexcept
-	    : y_(y), m_(y.is_leap() ? jewish::month(m) : jewish::month(month_regular(m))), wdi_(wdi) {}
-    constexpr year_month_weekday(const sys_days& dp) noexcept
-	    : year_month_weekday(from_sys_days(dp.time_since_epoch())) {}
-    constexpr explicit year_month_weekday(const local_days& dp) noexcept
-	    : year_month_weekday(from_sys_days(dp.time_since_epoch())) {}
+	public:
+	year_month_weekday() = default;
+	constexpr year_month_weekday(const jewish::year& y, const jewish::month& m,
+			const jewish::weekday_indexed& wdi) noexcept
+		: y_(y) , m_(m) , wdi_(wdi) {}
+	constexpr year_month_weekday(const jewish::year& y, const jewish::month_regular& m,
+			const jewish::weekday_indexed& wdi) noexcept
+		: y_(y), m_(y.is_leap() ? jewish::month(month_leap(m)) : jewish::month(m)), wdi_(wdi) {}
+	constexpr year_month_weekday(const jewish::year& y, const jewish::month_leap& m,
+			const jewish::weekday_indexed& wdi) noexcept
+		: y_(y), m_(y.is_leap() ? jewish::month(m) : jewish::month(month_regular(m))), wdi_(wdi) {}
+	constexpr year_month_weekday(const sys_days& dp) noexcept
+		: year_month_weekday(from_sys_days(dp.time_since_epoch())) {}
+	constexpr explicit year_month_weekday(const local_days& dp) noexcept
+		: year_month_weekday(from_sys_days(dp.time_since_epoch())) {}
 
-    template<class = details::unspecified_month_disambiguator>
-    constexpr year_month_weekday& operator+=(const months& m) noexcept { *this = *this + m; return *this; }
-    template<class = details::unspecified_month_disambiguator>
-    constexpr year_month_weekday& operator-=(const months& m) noexcept { *this = *this - m; return *this; }
-    constexpr year_month_weekday& operator+=(const years& y)  noexcept { *this = *this + y; return *this; }
-    constexpr year_month_weekday& operator-=(const years& y)  noexcept { *this = *this - y; return *this; }
+	template<class = details::unspecified_month_disambiguator>
+	constexpr year_month_weekday& operator+=(const months& m) noexcept { *this = *this + m; return *this; }
+	template<class = details::unspecified_month_disambiguator>
+	constexpr year_month_weekday& operator-=(const months& m) noexcept { *this = *this - m; return *this; }
+	constexpr year_month_weekday& operator+=(const years& y)  noexcept { *this = *this + y; return *this; }
+	constexpr year_month_weekday& operator-=(const years& y)  noexcept { *this = *this - y; return *this; }
 
-    constexpr jewish::year year() const noexcept { return y_; }
-    constexpr jewish::month month() const noexcept { return m_; }
-    constexpr jewish::weekday weekday() const noexcept { return wdi_.weekday(); }
-    constexpr unsigned index() const noexcept { return wdi_.index(); }
-    constexpr jewish::weekday_indexed weekday_indexed() const noexcept { return wdi_; }
+	constexpr jewish::year year() const noexcept { return y_; }
+	constexpr jewish::month month() const noexcept { return m_; }
+	constexpr jewish::weekday weekday() const noexcept { return wdi_.weekday(); }
+	constexpr unsigned index() const noexcept { return wdi_.index(); }
+	constexpr jewish::weekday_indexed weekday_indexed() const noexcept { return wdi_; }
 
-    constexpr operator sys_days() const noexcept { return sys_days{days_since_sys_epoch()}; }
-    constexpr explicit operator local_days() const noexcept { return local_days{days_since_sys_epoch()}; }
+	constexpr operator sys_days() const noexcept { return sys_days{days_since_sys_epoch()}; }
+	constexpr explicit operator local_days() const noexcept { return local_days{days_since_sys_epoch()}; }
 
-    constexpr bool ok() const noexcept
-    {
-	    auto ym = year_month(year(), month());
-	    if (!ym.ok() || !weekday().ok() || index() < 1)
-		    return false;
-	    if (index() <= 4)
-		    return true;
-	    auto d2 = wdi_.weekday() - jewish::weekday(year_month_day(year(), month(), jewish::day(1))) +
-		    days((wdi_.index()-1)*7 + 1);
-	    return d2.count() <= static_cast<unsigned>(year_month_day_last(year(), month_day_last(month())).day());
-    }
-    constexpr bool operator==(const year_month_weekday&) const noexcept = default;
-    constexpr bool operator!=(const year_month_weekday&) const noexcept = default;
-private:
-    static constexpr year_month_weekday from_sys_days(days d) noexcept
-    {
-	    sys_days dp{d};
-	    auto const wd = jewish::weekday(dp);
-	    auto const ymd = year_month_day(dp);
-	    return {ymd.year(), ymd.month(), wd[(static_cast<unsigned>(ymd.day())-1)/7+1]};
-    }
-    constexpr days days_since_sys_epoch() const noexcept
-    {
-	    auto d = sys_days(year_month_day(year(), month(), day(1)));
-	    return (d + (wdi_.weekday() - jewish::weekday(d) + weeks{(wdi_.index()-1)})
-		   ).time_since_epoch();
-    }
+	constexpr bool ok() const noexcept
+	{
+		auto ym = year_month(year(), month());
+		if (!ym.ok() || !weekday().ok() || index() < 1)
+			return false;
+		if (index() <= 4)
+			return true;
+		auto d2 = wdi_.weekday() - jewish::weekday(year_month_day(year(), month(), jewish::day(1))) +
+			days((wdi_.index()-1)*7 + 1);
+		return d2.count() <= static_cast<unsigned>(year_month_day_last(year(), month_day_last(month())).day());
+	}
+	constexpr bool operator==(const year_month_weekday&) const noexcept = default;
+	constexpr bool operator!=(const year_month_weekday&) const noexcept = default;
+	private:
+	static constexpr year_month_weekday from_sys_days(days d) noexcept
+	{
+		sys_days dp{d};
+		auto const wd = jewish::weekday(dp);
+		auto const ymd = year_month_day(dp);
+		return {ymd.year(), ymd.month(), wd[(static_cast<unsigned>(ymd.day())-1)/7+1]};
+	}
+	constexpr days days_since_sys_epoch() const noexcept
+	{
+		auto d = sys_days(year_month_day(year(), month(), day(1)));
+		return (d + (wdi_.weekday() - jewish::weekday(d) + weeks{(wdi_.index()-1)})
+		       ).time_since_epoch();
+	}
 };
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits>& os, const year_month_weekday& ymwdi)
 {
-    return os << ymwdi.year() << '/' << ymwdi.month() << '/' << ymwdi.weekday_indexed();
+	return os << ymwdi.year() << '/' << ymwdi.month() << '/' << ymwdi.weekday_indexed();
 }
 
 template<class>
@@ -1161,7 +1247,7 @@ operator-(const year_month_weekday& ymwd, const months& dm) noexcept { return ym
 constexpr inline year_month_weekday
 operator+(const year_month_weekday& ymwd, const years& dy) noexcept
 {
-    return {ymwd.year()+dy, ymwd.month(), ymwd.weekday_indexed()};
+	return {ymwd.year()+dy, ymwd.month(), ymwd.weekday_indexed()};
 }
 constexpr inline year_month_weekday
 operator+(const years& dy, const year_month_weekday& ymwd) noexcept { return ymwd + dy; }
@@ -1173,7 +1259,7 @@ template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits>& os, const jewish::year_month_weekday_last& ymwdl)
 {
-    return os << ymwdl.year() << '/' << ymwdl.month() << '/' << ymwdl.weekday_last();
+	return os << ymwdl.year() << '/' << ymwdl.month() << '/' << ymwdl.weekday_last();
 }
 
 //regular_month_day
@@ -1347,7 +1433,7 @@ int main() {
 		if (ym.year().is_leap()) {
 			if (m == 6) return "Adar 1";
 			if (m == 7) return "Adar 2";
-			if (m > 5) m--;
+			if (m > 7) m--;
 		}
 		switch (m) {
 			case 1: return "Tishrei";
