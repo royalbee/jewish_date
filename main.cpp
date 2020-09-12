@@ -213,6 +213,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const weekday& wd)
 	return os;
 }
 
+namespace literals {
 static constexpr weekday Rishon(1u);
 static constexpr weekday Sheni(2u);
 static constexpr weekday Shlishi(3u);
@@ -220,6 +221,7 @@ static constexpr weekday Revii(4u);
 static constexpr weekday Hamishi(5u);
 static constexpr weekday Shishi(6u);
 static constexpr weekday Shabbat(7u);
+} //namespace literals
 
 // weekday_indexed
 class weekday_indexed
@@ -325,7 +327,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const month_regular& mr) {
 		case 2: return os << "Cheshvan";
 		case 3: return os << "Kislev";
 		case 4: return os << "Tevet";
-		case 5: return os << "Shevat";
+		case 5: return os << "Shvat";
 		case 6: return os << "Adar";
 		case 7: return os << "Nisan";
 		case 8: return os << "Iyar";
@@ -348,7 +350,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const month_leap& ml) {
 		case 2: return os << "Cheshvan";
 		case 3: return os << "Kislev";
 		case 4: return os << "Tevet";
-		case 5: return os << "Shevat";
+		case 5: return os << "Shvat";
 		case 6: return os << "Adar 1";
 		case 7: return os << "Adar 2";
 		case 8: return os << "Nisan";
@@ -361,12 +363,12 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const month_leap& ml) {
 	}
 }
 
-
+namespace literals {
 static constexpr month_regular Tishrei(1u);
 static constexpr month_regular Cheshvan(2u);
 static constexpr month_regular Kislev(3u);
 static constexpr month_regular Tevet(4u);
-static constexpr month_regular Shevat(5u);
+static constexpr month_regular Shvat(5u);
 static constexpr month_regular Adar(6u);
 static constexpr month_regular Nisan(7u);
 static constexpr month_regular Iyar(8u);
@@ -376,6 +378,7 @@ static constexpr month_regular Av(11u);
 static constexpr month_regular Elul(12u);
 static constexpr month_leap Adar_1(6u);
 static constexpr month_leap Adar_2(7u);
+} //namespace literals
 
 // month
 class month;
@@ -462,6 +465,7 @@ class year
 	constexpr months months_since_creation() const { return months(((y_-1)*235+1)/19); }
 	constexpr auto days_since_creation()
 	{
+		using namespace jewish::literals;
 		using std::chrono::hours;
 		auto ps = molad_tohu + months_since_creation();
 		auto ds = floor<days>(ps);
@@ -1408,8 +1412,10 @@ constexpr inline year_month_weekday_last operator/(const month_weekday_last& mwd
 #include <string>
 #include <algorithm>
 #include <iomanip>
+#include "holidys.h"
 int main() {
 	using namespace jewish;
+	using namespace jewish::literals;
 	{
 		constexpr auto maya = date::year(2003)/date::month(7)/10;
 		std::cout << year_month_day(maya) << '\n';
@@ -1433,9 +1439,11 @@ int main() {
 		static_assert(ymdl == yedl);
 	}
 
-	constexpr auto y = jewish::year(5779);
+	constexpr auto y = jewish::year(5781);
 	static constexpr std::string_view col_sep = "| ";
 	static constexpr auto months_per_row = jewish::months(5);
+	std::cout << '+' << std::setfill('-') << std::setw(months_per_row.count()*23) << '+' << '\n';
+	std::cout << col_sep << std::setfill(' ') << std::setw(months_per_row.count()*23 - 3) << static_cast<int>(y) << ' ' << col_sep << '\n';
 	for(auto r = y / Tishrei, re = (y + years(1)) / Tishrei; r < re ; r += months_per_row) {
 		auto for_each_row_months =
 			[=, lr = std::min(r + months_per_row, re)](auto f) {
@@ -1447,11 +1455,19 @@ int main() {
 			std::cout << '\n';
 		};
 		if (r == y / Tishrei) row_sep();
-		std::cout << "| ";
+		std::cout << col_sep;
 		for_each_row_months([&](auto ym) {
 				auto print = [](auto m){ std::cout << std::setfill(' ') << std::setw(20) << m << ' ' << col_sep;};
 				auto m = ym.month();
 				ym.year().is_leap() ? print(month_leap(m)) : print(month_regular(m));
+		});
+		std::cout << '\n';
+		row_sep();
+		std::cout << col_sep;
+		for_each_row_months([&](auto ym) {
+				for(char d : {'S', 'M', 'T', 'W', 'T', 'F', 'S'})
+					std::cout << std::setfill(' ') << std::setw(2) << d << ' ';
+				std::cout << col_sep;
 		});
 		std::cout << '\n';
 		row_sep();
@@ -1494,8 +1510,8 @@ int main() {
 				auto a1 = jewish::year_month_day(a.year(), a.month(), jewish::day(1));
 
 				auto b = jewish::year_month_day_last(a.year(), jewish::month_day_last(a.month()));
-				auto bb = jewish::year_month_weekday_last(a.year() / a.month() / jewish::Shabbat[last]);
-				auto bbb = jewish::year_month_weekday(a.year() / a.month() / jewish::Shlishi[2]);
+				auto bb = jewish::year_month_weekday_last(a.year() / a.month() / Shabbat[last]);
+				auto bbb = jewish::year_month_weekday(a.year() / a.month() / Shlishi[2]);
 				std::cout << jewish::year_month_day(date::sys_days(b))
 					<< " <= " << date::year_month_day(b)
 					<< " <= " << date::year_month_day(a1)
