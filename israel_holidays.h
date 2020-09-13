@@ -1,6 +1,7 @@
-#ifndef ISRAEL_HOLIDAYS
-#define ISRAEL_HOLIDAYS
+#ifndef ISRAEL_HOLIDAYS_H
+#define ISRAEL_HOLIDAYS_H
 #include <utility>
+#include "jewish_date.h"
 
 namespace israel_holidays {
 using namespace jewish::literals;
@@ -26,4 +27,4 @@ static constexpr auto Shavuot = Sivan/6;
 static constexpr auto Tisha_BAv = Av/9;
 static constexpr auto Tu_BAv = Av/15;
 }
-#endif //ISRAEL_HOLIDAYS
+#endif //ISRAEL_HOLIDAYS_H
