@@ -137,8 +137,8 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const day& d)
 class weekday_indexed;
 class weekday_last;
 class weekday;
-constexpr inline weekday operator+(const weekday& x, const days& y) noexcept;
-constexpr inline weekday operator-(const weekday& x, const days& y) noexcept;
+constexpr weekday operator+(const weekday& x, const days& y) noexcept;
+constexpr weekday operator-(const weekday& x, const days& y) noexcept;
 class weekday
 {
 	unsigned char wd_;
@@ -173,13 +173,13 @@ class weekday
 	constexpr weekday_indexed operator[](unsigned index) const noexcept;
 	constexpr weekday_last    operator[](last_spec)      const noexcept;
 
-	friend constexpr inline days operator-(const weekday& x, const weekday& y) noexcept
+	friend constexpr days operator-(const weekday& x, const weekday& y) noexcept
 	{
 		auto const wdu = x.wd_ - y.wd_;
 		auto const wk = (wdu >= 0 ? wdu : wdu-6) / 7;
 		return days{wdu - wk * 7};
 	}
-	friend constexpr inline weekday operator+(const weekday& x, const days& y) noexcept
+	friend constexpr weekday operator+(const weekday& x, const days& y) noexcept
 	{
 		auto const wdu = static_cast<long long>(static_cast<unsigned>(x)) + y.count();
 		auto const wk = (wdu >= 0 ? wdu : wdu-6) / 7;
@@ -193,8 +193,8 @@ class weekday
 	}
 };
 
-constexpr inline weekday operator+(const days& x, const weekday& y) noexcept { return y + x; }
-constexpr inline weekday operator-(const weekday& x, const days& y) noexcept { return x + -y; }
+constexpr weekday operator+(const days& x, const weekday& y) noexcept { return y + x; }
+constexpr weekday operator-(const weekday& x, const days& y) noexcept { return x + -y; }
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
@@ -886,7 +886,7 @@ template<class = details::unspecified_month_disambiguator>
 constexpr year_month_day_last operator-(const year_month_day_last& ymdl, const months& dm) noexcept;
 class year_month_day_last
 {
-	jewish::year           y_;
+	jewish::year y_;
 	jewish::month_day_last mdl_;
 
 	public:
@@ -908,10 +908,10 @@ class year_month_day_last
 	constexpr year_month_day_last& operator+=(const years& y)  noexcept {*this = *this + y; return *this;}
 	constexpr year_month_day_last& operator-=(const years& y)  noexcept {*this = *this - y; return *this;}
 
-	constexpr jewish::year           year()           const noexcept {return y_;}
-	constexpr jewish::month          month()          const noexcept {return mdl_.month();}
+	constexpr jewish::year year() const noexcept {return y_;}
+	constexpr jewish::month month() const noexcept {return mdl_.month();}
 	constexpr jewish::month_day_last month_day_last() const noexcept {return mdl_;}
-	constexpr jewish::day            day()            const noexcept
+	constexpr jewish::day day() const noexcept
 	{
 		auto ym = year_month(year(), month());
 		return jewish::day(((ym+months(1)).days_since_creation() - ym.days_since_creation()).count());
@@ -926,24 +926,24 @@ class year_month_day_last
 };
 
 template<class>
-constexpr inline year_month_day_last operator+(const year_month_day_last& ymdl, const months& dm) noexcept
+constexpr year_month_day_last operator+(const year_month_day_last& ymdl, const months& dm) noexcept
 {
 	auto ym = year_month(ymdl.year(), ymdl.month()) + dm;
 	return year_month_day_last(ym.year(), month_day_last(ym.month()));
 }
 
 template<class = details::unspecified_month_disambiguator>
-constexpr inline year_month_day_last operator+(const months& dm, const year_month_day_last& ymdl) noexcept { return ymdl + dm; }
+constexpr year_month_day_last operator+(const months& dm, const year_month_day_last& ymdl) noexcept { return ymdl + dm; }
 
 template<class>
-constexpr inline year_month_day_last operator-(const year_month_day_last& ymdl, const months& dm) noexcept { return ymdl + (-dm); }
-constexpr inline year_month_day_last operator+(const year_month_day_last& ymdl, const years& dy) noexcept
+constexpr year_month_day_last operator-(const year_month_day_last& ymdl, const months& dm) noexcept { return ymdl + (-dm); }
+constexpr year_month_day_last operator+(const year_month_day_last& ymdl, const years& dy) noexcept
 {
 	return {ymdl.year()+dy, ymdl.month_day_last()};
 }
 
-constexpr inline year_month_day_last operator+(const years& dy, const year_month_day_last& ymdl) noexcept { return ymdl + dy; }
-constexpr inline year_month_day_last operator-(const year_month_day_last& ymdl, const years& dy) noexcept { return ymdl + (-dy); }
+constexpr year_month_day_last operator+(const years& dy, const year_month_day_last& ymdl) noexcept { return ymdl + dy; }
+constexpr year_month_day_last operator-(const year_month_day_last& ymdl, const years& dy) noexcept { return ymdl + (-dy); }
 
 // year_month_day
 class year_month_day;
@@ -955,9 +955,9 @@ template<class = details::unspecified_month_disambiguator>
 constexpr year_month_day operator-(const year_month_day& ymd, const months& dm) noexcept;
 class year_month_day
 {
-	jewish::year           y_;
-	jewish::month          m_;
-	jewish::day            d_;
+	jewish::year y_;
+	jewish::month m_;
+	jewish::day d_;
 
 	public:
 	constexpr year_month_day(const jewish::year& y, const jewish::month& m, const jewish::day& d) noexcept
@@ -979,9 +979,9 @@ class year_month_day
 
 	constexpr auto operator<=>(const year_month_day&) const noexcept = default;
 
-	constexpr jewish::year           year()           const noexcept {return y_;}
-	constexpr jewish::month          month()          const noexcept {return m_;}
-	constexpr jewish::day            day()            const noexcept {return d_;}
+	constexpr jewish::year year() const noexcept {return y_;}
+	constexpr jewish::month month() const noexcept {return m_;}
+	constexpr jewish::day day() const noexcept {return d_;}
 
 	constexpr bool ok() const noexcept
 	{
@@ -1018,36 +1018,36 @@ constexpr year_month_day_last::operator local_days() const noexcept
 }
 
 template<class>
-constexpr inline year_month_day operator+(const year_month_day& ymd, const months& dm) noexcept
+constexpr year_month_day operator+(const year_month_day& ymd, const months& dm) noexcept
 {
 	auto ym = year_month(ymd.year(), ymd.month()) + dm;
 	return year_month_day(ym.year(), ym.month(), ymd.day());
 }
 
 template<class>
-constexpr inline year_month_day operator+(const months& dm, const year_month_day& ymd) noexcept
+constexpr year_month_day operator+(const months& dm, const year_month_day& ymd) noexcept
 {
 	return ymd + dm;
 }
 
 template<class>
-constexpr inline year_month_day operator-(const year_month_day& ymd, const months& dm) noexcept
+constexpr year_month_day operator-(const year_month_day& ymd, const months& dm) noexcept
 {
 	return ymd + (-dm);
 }
 
-constexpr inline year_month_day operator+(const year_month_day& ymd, const years& dy) noexcept
+constexpr year_month_day operator+(const year_month_day& ymd, const years& dy) noexcept
 {
 	auto ym = year_month(ymd.year(), ymd.month()) + dy;
 	return {ym.year(), ym.month(), ymd.day()};
 }
 
-constexpr inline year_month_day operator+(const years& dy, const year_month_day& ymd) noexcept
+constexpr year_month_day operator+(const years& dy, const year_month_day& ymd) noexcept
 {
 	return ymd + dy;
 }
 
-constexpr inline year_month_day operator-(const year_month_day& ymd, const years& dy) noexcept
+constexpr year_month_day operator-(const year_month_day& ymd, const years& dy) noexcept
 {
 	return ymd + (-dy);
 }
@@ -1063,15 +1063,15 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const year_month_day& ymd)
 // year_month_weekday_last
 class year_month_weekday_last;
 template<class = details::unspecified_month_disambiguator>
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const months& dm) noexcept;
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const years& dm) noexcept;
 
 template<class = details::unspecified_month_disambiguator>
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator-(const year_month_weekday_last& ymwdl, const months& dm) noexcept;
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator-(const year_month_weekday_last& ymwdl, const years& dm) noexcept;
 
 class year_month_weekday_last
@@ -1120,7 +1120,7 @@ class year_month_weekday_last
 };
 
 template<class>
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const months& dm) noexcept
 {
 	auto ym = year_month(ymwdl.year(), ymwdl.month()) + dm;
@@ -1128,29 +1128,24 @@ operator+(const year_month_weekday_last& ymwdl, const months& dm) noexcept
 }
 
 template<class = details::unspecified_month_disambiguator>
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator+(const months& dm, const year_month_weekday_last& ymwdl) noexcept { return ymwdl + dm; }
 
 template<class>
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator-(const year_month_weekday_last& ymwdl, const months& dm) noexcept { return ymwdl + (-dm); }
 
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const years& dy) noexcept
 {
 	return {ymwdl.year()+dy, ymwdl.month(), ymwdl.weekday_last()};
 }
 
-constexpr inline year_month_weekday_last
+constexpr year_month_weekday_last
 operator+(const years& dy, const year_month_weekday_last& ymwdl) noexcept { return ymwdl + dy; }
 
-constexpr
-inline
-year_month_weekday_last
-operator-(const year_month_weekday_last& ymwdl, const years& dy) noexcept
-{
-	return ymwdl + (-dy);
-}
+constexpr year_month_weekday_last
+operator-(const year_month_weekday_last& ymwdl, const years& dy) noexcept { return ymwdl + (-dy); }
 
  
 // year_month_weekday
@@ -1165,8 +1160,8 @@ constexpr year_month_weekday operator-(const year_month_weekday& ymwd, const yea
 
 class year_month_weekday
 {
-	jewish::year            y_;
-	jewish::month           m_;
+	jewish::year y_;
+	jewish::month m_;
 	jewish::weekday_indexed wdi_;
 
 	public:
@@ -1208,6 +1203,7 @@ class year_month_weekday
 			return false;
 		if (index() <= 4)
 			return true;
+		auto ymd = 
 		auto d2 = wdi_.weekday() - jewish::weekday(year_month_day(year(), month(), jewish::day(1))) +
 			days((wdi_.index()-1)*7 + 1);
 		return d2.count() <= static_cast<unsigned>(year_month_day_last(year(), month_day_last(month())).day());
@@ -1238,7 +1234,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const year_month_weekday& ymwd
 }
 
 template<class>
-constexpr inline year_month_weekday
+constexpr year_month_weekday
 operator+(const year_month_weekday& ymwd, const months& dm) noexcept
 {
 	auto ym = year_month(ymwd.year(), ymwd.month()) + dm;
@@ -1246,22 +1242,22 @@ operator+(const year_month_weekday& ymwd, const months& dm) noexcept
 }
 
 template<class = details::unspecified_month_disambiguator>
-constexpr inline year_month_weekday
+constexpr year_month_weekday
 operator+(const months& dm, const year_month_weekday& ymwd) noexcept { return ymwd + dm; }
 
 template<class>
-constexpr inline year_month_weekday
+constexpr year_month_weekday
 operator-(const year_month_weekday& ymwd, const months& dm) noexcept { return ymwd + (-dm); }
 
-constexpr inline year_month_weekday
+constexpr year_month_weekday
 operator+(const year_month_weekday& ymwd, const years& dy) noexcept
 {
 	return {ymwd.year()+dy, ymwd.month(), ymwd.weekday_indexed()};
 }
-constexpr inline year_month_weekday
+constexpr year_month_weekday
 operator+(const years& dy, const year_month_weekday& ymwd) noexcept { return ymwd + dy; }
 
-constexpr inline year_month_weekday
+constexpr year_month_weekday
 operator-(const year_month_weekday& ymwd, const years& dy) noexcept { return ymwd + (-dy); }
 
 template<class CharT, class Traits>
@@ -1272,139 +1268,138 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const jewish::year_month_weekd
 }
 
 //regular_month_day
-constexpr inline regular_month_day operator/(const month_regular& m, const day& d) noexcept { return {m, d}; }
-constexpr inline regular_month_day operator/(const day& d, const month_regular& m) noexcept { return m / d; }
-constexpr inline regular_month_day operator/(const month_regular& m, int d) noexcept { return m / day(static_cast<unsigned>(d)); }
+constexpr regular_month_day operator/(const month_regular& m, const day& d) noexcept { return {m, d}; }
+constexpr regular_month_day operator/(const day& d, const month_regular& m) noexcept { return m / d; }
+constexpr regular_month_day operator/(const month_regular& m, int d) noexcept { return m / day(static_cast<unsigned>(d)); }
 
 //leap_month_day
-constexpr inline leap_month_day operator/(const month_leap& m, const day& d) noexcept { return {m, d}; }
-constexpr inline leap_month_day operator/(const day& d, const month_leap& m) noexcept { return m / d; }
-constexpr inline leap_month_day operator/(const month_leap& m, int d) noexcept { return m / day(static_cast<unsigned>(d)); }
+constexpr leap_month_day operator/(const month_leap& m, const day& d) noexcept { return {m, d}; }
+constexpr leap_month_day operator/(const day& d, const month_leap& m) noexcept { return m / d; }
+constexpr leap_month_day operator/(const month_leap& m, int d) noexcept { return m / day(static_cast<unsigned>(d)); }
 
 // month_day
-constexpr inline month_day operator/(const month& m, const day& d) noexcept { return {m, d}; }
-constexpr inline month_day operator/(const day& d, const month& m) noexcept { return m / d; }
-constexpr inline month_day operator/(const month& m, int d) noexcept { return m / day(static_cast<unsigned>(d)); }
-constexpr inline month_day operator/(int m, const day& d) noexcept { return month(static_cast<unsigned>(m)) / d; }
-constexpr inline month_day operator/(const day& d, int m) noexcept {return m / d;}
+constexpr month_day operator/(const month& m, const day& d) noexcept { return {m, d}; }
+constexpr month_day operator/(const day& d, const month& m) noexcept { return m / d; }
+constexpr month_day operator/(const month& m, int d) noexcept { return m / day(static_cast<unsigned>(d)); }
+constexpr month_day operator/(int m, const day& d) noexcept { return month(static_cast<unsigned>(m)) / d; }
+constexpr month_day operator/(const day& d, int m) noexcept {return m / d;}
 
 // leap_month_day_last
-constexpr inline leap_month_day_last operator/(const month_leap& m, last_spec) noexcept { return leap_month_day_last{m}; }
-constexpr inline leap_month_day_last operator/(last_spec, const month_leap& m) noexcept { return m/last; }
+constexpr leap_month_day_last operator/(const month_leap& m, last_spec) noexcept { return leap_month_day_last{m}; }
+constexpr leap_month_day_last operator/(last_spec, const month_leap& m) noexcept { return m/last; }
 
 // regular_month_day_last
-constexpr inline regular_month_day_last operator/(const month_regular& m, last_spec) noexcept { return regular_month_day_last{m}; }
-constexpr inline regular_month_day_last operator/(last_spec, const month_regular& m) noexcept { return m/last; }
+constexpr regular_month_day_last operator/(const month_regular& m, last_spec) noexcept { return regular_month_day_last{m}; }
+constexpr regular_month_day_last operator/(last_spec, const month_regular& m) noexcept { return m/last; }
 
 // month_day_last
-constexpr inline month_day_last operator/(const month& m, last_spec) noexcept { return month_day_last{m}; }
-constexpr inline month_day_last operator/(last_spec, const month& m) noexcept { return m/last; }
-constexpr inline month_day_last operator/(int m, last_spec) noexcept { return month(static_cast<unsigned>(m))/last; }
-constexpr inline month_day_last operator/(last_spec, int m) noexcept { return month(static_cast<unsigned>(m))/last; }
+constexpr month_day_last operator/(const month& m, last_spec) noexcept { return month_day_last{m}; }
+constexpr month_day_last operator/(last_spec, const month& m) noexcept { return m/last; }
+constexpr month_day_last operator/(int m, last_spec) noexcept { return month(static_cast<unsigned>(m))/last; }
+constexpr month_day_last operator/(last_spec, int m) noexcept { return month(static_cast<unsigned>(m))/last; }
 
 // leap_month_weekday
-constexpr inline leap_month_weekday operator/(const month_leap& m, const weekday_indexed& wdi) noexcept { return {m, wdi}; }
-constexpr inline leap_month_weekday operator/(const weekday_indexed& wdi, const month_leap& m) noexcept { return m / wdi; }
+constexpr leap_month_weekday operator/(const month_leap& m, const weekday_indexed& wdi) noexcept { return {m, wdi}; }
+constexpr leap_month_weekday operator/(const weekday_indexed& wdi, const month_leap& m) noexcept { return m / wdi; }
 
 // regular_month_weekday
-constexpr inline regular_month_weekday operator/(const month_regular& m, const weekday_indexed& wdi) noexcept { return {m, wdi}; }
-constexpr inline regular_month_weekday operator/(const weekday_indexed& wdi, const month_regular& m) noexcept { return m / wdi; }
+constexpr regular_month_weekday operator/(const month_regular& m, const weekday_indexed& wdi) noexcept { return {m, wdi}; }
+constexpr regular_month_weekday operator/(const weekday_indexed& wdi, const month_regular& m) noexcept { return m / wdi; }
 
 // month_weekday
-constexpr inline month_weekday operator/(const month& m, const weekday_indexed& wdi) noexcept { return {m, wdi}; }
-constexpr inline month_weekday operator/(const weekday_indexed& wdi, const month& m) noexcept { return m / wdi; }
-constexpr inline month_weekday operator/(int m, const weekday_indexed& wdi) noexcept { return month(static_cast<unsigned>(m)) / wdi; }
-constexpr inline month_weekday operator/(const weekday_indexed& wdi, int m) noexcept { return m / wdi; }
+constexpr month_weekday operator/(const month& m, const weekday_indexed& wdi) noexcept { return {m, wdi}; }
+constexpr month_weekday operator/(const weekday_indexed& wdi, const month& m) noexcept { return m / wdi; }
+constexpr month_weekday operator/(int m, const weekday_indexed& wdi) noexcept { return month(static_cast<unsigned>(m)) / wdi; }
+constexpr month_weekday operator/(const weekday_indexed& wdi, int m) noexcept { return m / wdi; }
 
 // leap_month_weekday_last
-constexpr inline leap_month_weekday_last operator/(const month_leap& m, const weekday_last& wdl) noexcept { return {m, wdl}; }
-constexpr inline leap_month_weekday_last operator/(const weekday_last& wdl, const month_leap& m) noexcept { return m / wdl; }
+constexpr leap_month_weekday_last operator/(const month_leap& m, const weekday_last& wdl) noexcept { return {m, wdl}; }
+constexpr leap_month_weekday_last operator/(const weekday_last& wdl, const month_leap& m) noexcept { return m / wdl; }
 
 // regular_month_weekday_last
-constexpr inline regular_month_weekday_last operator/(const month_regular& m, const weekday_last& wdl) noexcept { return {m, wdl}; }
-constexpr inline regular_month_weekday_last operator/(const weekday_last& wdl, const month_regular& m) noexcept { return m / wdl; }
+constexpr regular_month_weekday_last operator/(const month_regular& m, const weekday_last& wdl) noexcept { return {m, wdl}; }
+constexpr regular_month_weekday_last operator/(const weekday_last& wdl, const month_regular& m) noexcept { return m / wdl; }
 
 // month_weekday_last
-constexpr inline month_weekday_last operator/(const month& m, const weekday_last& wdl) noexcept { return {m, wdl}; }
-constexpr inline month_weekday_last operator/(const weekday_last& wdl, const month& m) noexcept { return m / wdl; }
-constexpr inline month_weekday_last operator/(int m, const weekday_last& wdl) noexcept { return month(static_cast<unsigned>(m)) / wdl; }
-constexpr inline month_weekday_last operator/(const weekday_last& wdl, int m) noexcept { return m / wdl; }
+constexpr month_weekday_last operator/(const month& m, const weekday_last& wdl) noexcept { return {m, wdl}; }
+constexpr month_weekday_last operator/(const weekday_last& wdl, const month& m) noexcept { return m / wdl; }
+constexpr month_weekday_last operator/(int m, const weekday_last& wdl) noexcept { return month(static_cast<unsigned>(m)) / wdl; }
+constexpr month_weekday_last operator/(const weekday_last& wdl, int m) noexcept { return m / wdl; }
 
 // year_month
-constexpr inline year_month operator/(const year& y, const month& m) noexcept { return {y, m}; }
-constexpr inline year_month operator/(const year& y, const month_regular& mr) noexcept { return {y, mr}; }
-constexpr inline year_month operator/(const year& y, const month_leap& mm) noexcept { return {y, mm}; }
-constexpr inline year_month operator/(const year& y, int   m) noexcept { return y / month(static_cast<unsigned>(m)); }
-constexpr inline year_month_last operator/(const year& y, last_spec) noexcept { return y; }
+constexpr year_month operator/(const year& y, const month& m) noexcept { return {y, m}; }
+constexpr year_month operator/(const year& y, const month_regular& mr) noexcept { return {y, mr}; }
+constexpr year_month operator/(const year& y, const month_leap& mm) noexcept { return {y, mm}; }
+constexpr year_month operator/(const year& y, int   m) noexcept { return y / month(static_cast<unsigned>(m)); }
+constexpr year_month_last operator/(const year& y, last_spec) noexcept { return y; }
 
 // year_month_day
-constexpr inline year_month_day operator/(const year_month& ym, const day& d) noexcept { return {ym.year(), ym.month(), d}; }
-constexpr inline year_month_day operator/(const year_month_last& yml, const day& d) noexcept { return {yml.year(), yml.month(), d}; }
-constexpr inline year_month_day operator/(const year_month& ym, int   d) noexcept { return ym / day(static_cast<unsigned>(d)); }
-constexpr inline year_month_day operator/(const year_month_last& yml, int   d) noexcept { return yml / day(static_cast<unsigned>(d)); }
-constexpr inline year_month_day operator/(const year& y, const leap_month_day& md) noexcept { return y / md.month() / md.day(); }
-constexpr inline year_month_day operator/(int y, const leap_month_day& md) noexcept { return year(y) / md; }
-constexpr inline year_month_day operator/(const leap_month_day& md, const year& y)  noexcept { return y / md; }
-constexpr inline year_month_day operator/(const leap_month_day& md, int y) noexcept { return year(y) / md; }
-constexpr inline year_month_day operator/(const year& y, const regular_month_day& md) noexcept { return y / md.month() / md.day(); }
-constexpr inline year_month_day operator/(int y, const regular_month_day& md) noexcept { return year(y) / md; }
-constexpr inline year_month_day operator/(const regular_month_day& md, const year& y)  noexcept { return y / md; }
-constexpr inline year_month_day operator/(const regular_month_day& md, int y) noexcept { return year(y) / md; }
-constexpr inline year_month_day operator/(const year& y, const month_day& md) noexcept { return y / md.month() / md.day(); }
-constexpr inline year_month_day operator/(int y, const month_day& md) noexcept { return year(y) / md; }
-constexpr inline year_month_day operator/(const month_day& md, const year& y)  noexcept { return y / md; }
-constexpr inline year_month_day operator/(const month_day& md, int y) noexcept { return year(y) / md; }
+constexpr year_month_day operator/(const year_month& ym, const day& d) noexcept { return {ym.year(), ym.month(), d}; }
+constexpr year_month_day operator/(const year_month_last& yml, const day& d) noexcept { return {yml.year(), yml.month(), d}; }
+constexpr year_month_day operator/(const year_month& ym, int   d) noexcept { return ym / day(static_cast<unsigned>(d)); }
+constexpr year_month_day operator/(const year_month_last& yml, int   d) noexcept { return yml / day(static_cast<unsigned>(d)); }
+constexpr year_month_day operator/(const year& y, const leap_month_day& md) noexcept { return y / md.month() / md.day(); }
+constexpr year_month_day operator/(int y, const leap_month_day& md) noexcept { return year(y) / md; }
+constexpr year_month_day operator/(const leap_month_day& md, const year& y)  noexcept { return y / md; }
+constexpr year_month_day operator/(const leap_month_day& md, int y) noexcept { return year(y) / md; }
+constexpr year_month_day operator/(const year& y, const regular_month_day& md) noexcept { return y / md.month() / md.day(); }
+constexpr year_month_day operator/(int y, const regular_month_day& md) noexcept { return year(y) / md; }
+constexpr year_month_day operator/(const regular_month_day& md, const year& y)  noexcept { return y / md; }
+constexpr year_month_day operator/(const regular_month_day& md, int y) noexcept { return year(y) / md; }
+constexpr year_month_day operator/(const year& y, const month_day& md) noexcept { return y / md.month() / md.day(); }
+constexpr year_month_day operator/(int y, const month_day& md) noexcept { return year(y) / md; }
+constexpr year_month_day operator/(const month_day& md, const year& y)  noexcept { return y / md; }
+constexpr year_month_day operator/(const month_day& md, int y) noexcept { return year(y) / md; }
 
 // year_month_day_last
-constexpr inline year_month_day_last operator/(const year_month& ym, last_spec) noexcept { return {ym.year(), month_day_last(ym.month())}; }
-constexpr inline year_month_day_last operator/(const year_month_last& yml, last_spec) noexcept { return {yml.year(), month_day_last(yml.month())}; }
-constexpr inline year_month_day_last operator/(const year& y, const leap_month_day_last& mdl) noexcept { return {y, mdl}; }
-constexpr inline year_month_day_last operator/(int y, const leap_month_day_last& mdl) noexcept { return year(y) / mdl; }
-constexpr inline year_month_day_last operator/(const leap_month_day_last& mdl, const year& y) noexcept { return y / mdl; }
-constexpr inline year_month_day_last operator/(const leap_month_day_last& mdl, int y) noexcept { return year(y) / mdl; }
-constexpr inline year_month_day_last operator/(const year& y, const regular_month_day_last& mdl) noexcept { return {y, mdl}; }
-constexpr inline year_month_day_last operator/(int y, const regular_month_day_last& mdl) noexcept { return year(y) / mdl; }
-constexpr inline year_month_day_last operator/(const regular_month_day_last& mdl, const year& y) noexcept { return y / mdl; }
-constexpr inline year_month_day_last operator/(const regular_month_day_last& mdl, int y) noexcept { return year(y) / mdl; }
-constexpr inline year_month_day_last operator/(const year& y, const month_day_last& mdl) noexcept { return {y, mdl}; }
-constexpr inline year_month_day_last operator/(int y, const month_day_last& mdl) noexcept { return year(y) / mdl; }
-constexpr inline year_month_day_last operator/(const month_day_last& mdl, const year& y) noexcept { return y / mdl; }
-constexpr inline year_month_day_last operator/(const month_day_last& mdl, int y) noexcept { return year(y) / mdl; }
+constexpr year_month_day_last operator/(const year_month& ym, last_spec) noexcept { return {ym.year(), month_day_last(ym.month())}; }
+constexpr year_month_day_last operator/(const year_month_last& yml, last_spec) noexcept { return {yml.year(), month_day_last(yml.month())}; }
+constexpr year_month_day_last operator/(const year& y, const leap_month_day_last& mdl) noexcept { return {y, mdl}; }
+constexpr year_month_day_last operator/(int y, const leap_month_day_last& mdl) noexcept { return year(y) / mdl; }
+constexpr year_month_day_last operator/(const leap_month_day_last& mdl, const year& y) noexcept { return y / mdl; }
+constexpr year_month_day_last operator/(const leap_month_day_last& mdl, int y) noexcept { return year(y) / mdl; }
+constexpr year_month_day_last operator/(const year& y, const regular_month_day_last& mdl) noexcept { return {y, mdl}; }
+constexpr year_month_day_last operator/(int y, const regular_month_day_last& mdl) noexcept { return year(y) / mdl; }
+constexpr year_month_day_last operator/(const regular_month_day_last& mdl, const year& y) noexcept { return y / mdl; }
+constexpr year_month_day_last operator/(const regular_month_day_last& mdl, int y) noexcept { return year(y) / mdl; }
+constexpr year_month_day_last operator/(const year& y, const month_day_last& mdl) noexcept { return {y, mdl}; }
+constexpr year_month_day_last operator/(int y, const month_day_last& mdl) noexcept { return year(y) / mdl; }
+constexpr year_month_day_last operator/(const month_day_last& mdl, const year& y) noexcept { return y / mdl; }
+constexpr year_month_day_last operator/(const month_day_last& mdl, int y) noexcept { return year(y) / mdl; }
 
 // year_month_weekday
-constexpr inline year_month_weekday operator/(const year_month& ym, weekday_indexed const& wdi) noexcept { return {ym.year(), ym.month(), wdi}; }
-constexpr inline year_month_weekday operator/(const year_month_last& yml, weekday_indexed const& wdi) noexcept { return {yml.year(), yml.month(), wdi}; }
-constexpr inline year_month_weekday operator/(const year& y, const leap_month_weekday& mwd) noexcept { return {y, mwd.month(), mwd.weekday_indexed()}; }
-constexpr inline year_month_weekday operator/(int y, const leap_month_weekday& mwd) noexcept { return year(y) / mwd; }
-constexpr inline year_month_weekday operator/(const leap_month_weekday& mwd, const year& y) noexcept { return y / mwd; }
-constexpr inline year_month_weekday operator/(const leap_month_weekday& mwd, int y) noexcept { return year(y) / mwd; }
-constexpr inline year_month_weekday operator/(const year& y, const regular_month_weekday& mwd) noexcept { return {y, mwd.month(), mwd.weekday_indexed()}; }
-constexpr inline year_month_weekday operator/(int y, const regular_month_weekday& mwd) noexcept { return year(y) / mwd; }
-constexpr inline year_month_weekday operator/(const regular_month_weekday& mwd, const year& y) noexcept { return y / mwd; }
-constexpr inline year_month_weekday operator/(const regular_month_weekday& mwd, int y) noexcept { return year(y) / mwd; }
-constexpr inline year_month_weekday operator/(const year& y, const month_weekday& mwd) noexcept { return {y, mwd.month(), mwd.weekday_indexed()}; }
-constexpr inline year_month_weekday operator/(int y, const month_weekday& mwd) noexcept { return year(y) / mwd; }
-constexpr inline year_month_weekday operator/(const month_weekday& mwd, const year& y) noexcept { return y / mwd; }
-constexpr inline year_month_weekday operator/(const month_weekday& mwd, int y) noexcept { return year(y) / mwd; }
+constexpr year_month_weekday operator/(const year_month& ym, weekday_indexed const& wdi) noexcept { return {ym.year(), ym.month(), wdi}; }
+constexpr year_month_weekday operator/(const year_month_last& yml, weekday_indexed const& wdi) noexcept { return {yml.year(), yml.month(), wdi}; }
+constexpr year_month_weekday operator/(const year& y, const leap_month_weekday& mwd) noexcept { return {y, mwd.month(), mwd.weekday_indexed()}; }
+constexpr year_month_weekday operator/(int y, const leap_month_weekday& mwd) noexcept { return year(y) / mwd; }
+constexpr year_month_weekday operator/(const leap_month_weekday& mwd, const year& y) noexcept { return y / mwd; }
+constexpr year_month_weekday operator/(const leap_month_weekday& mwd, int y) noexcept { return year(y) / mwd; }
+constexpr year_month_weekday operator/(const year& y, const regular_month_weekday& mwd) noexcept { return {y, mwd.month(), mwd.weekday_indexed()}; }
+constexpr year_month_weekday operator/(int y, const regular_month_weekday& mwd) noexcept { return year(y) / mwd; }
+constexpr year_month_weekday operator/(const regular_month_weekday& mwd, const year& y) noexcept { return y / mwd; }
+constexpr year_month_weekday operator/(const regular_month_weekday& mwd, int y) noexcept { return year(y) / mwd; }
+constexpr year_month_weekday operator/(const year& y, const month_weekday& mwd) noexcept { return {y, mwd.month(), mwd.weekday_indexed()}; }
+constexpr year_month_weekday operator/(int y, const month_weekday& mwd) noexcept { return year(y) / mwd; }
+constexpr year_month_weekday operator/(const month_weekday& mwd, const year& y) noexcept { return y / mwd; }
+constexpr year_month_weekday operator/(const month_weekday& mwd, int y) noexcept { return year(y) / mwd; }
 
 // year_month_weekday_last
-constexpr inline year_month_weekday_last operator/(const year_month& ym, weekday_last const& wdl) noexcept { return {ym.year(), ym.month(), wdl}; }
-constexpr inline year_month_weekday_last operator/(const year_month_last& yml, weekday_last const& wdl) noexcept { return {yml.year(), yml.month(), wdl}; }
-constexpr inline year_month_weekday_last operator/(const year& y, const leap_month_weekday_last& mwdl) noexcept { return {y, mwdl.month(), mwdl.weekday_last()}; }
-constexpr inline year_month_weekday_last operator/(int y, const leap_month_weekday_last& mwdl) noexcept { return year(y) / mwdl; }
-constexpr inline year_month_weekday_last operator/(const leap_month_weekday_last& mwdl, const year& y) noexcept { return y / mwdl; }
+constexpr year_month_weekday_last operator/(const year_month& ym, weekday_last const& wdl) noexcept { return {ym.year(), ym.month(), wdl}; }
+constexpr year_month_weekday_last operator/(const year_month_last& yml, weekday_last const& wdl) noexcept { return {yml.year(), yml.month(), wdl}; }
+constexpr year_month_weekday_last operator/(const year& y, const leap_month_weekday_last& mwdl) noexcept { return {y, mwdl.month(), mwdl.weekday_last()}; }
+constexpr year_month_weekday_last operator/(int y, const leap_month_weekday_last& mwdl) noexcept { return year(y) / mwdl; }
+constexpr year_month_weekday_last operator/(const leap_month_weekday_last& mwdl, const year& y) noexcept { return y / mwdl; }
 
-constexpr inline year_month_weekday_last operator/(const leap_month_weekday_last& mwdl, int y) noexcept { return year(y) / mwdl; }
-constexpr inline year_month_weekday_last operator/(const year& y, const regular_month_weekday_last& mwdl) noexcept { return {y, mwdl.month(), mwdl.weekday_last()}; }
-constexpr inline year_month_weekday_last operator/(int y, const regular_month_weekday_last& mwdl) noexcept { return year(y) / mwdl; }
-constexpr inline year_month_weekday_last operator/(const regular_month_weekday_last& mwdl, const year& y) noexcept { return y / mwdl; }
+constexpr year_month_weekday_last operator/(const leap_month_weekday_last& mwdl, int y) noexcept { return year(y) / mwdl; }
+constexpr year_month_weekday_last operator/(const year& y, const regular_month_weekday_last& mwdl) noexcept { return {y, mwdl.month(), mwdl.weekday_last()}; }
+constexpr year_month_weekday_last operator/(int y, const regular_month_weekday_last& mwdl) noexcept { return year(y) / mwdl; }
+constexpr year_month_weekday_last operator/(const regular_month_weekday_last& mwdl, const year& y) noexcept { return y / mwdl; }
 
-constexpr inline year_month_weekday_last operator/(const regular_month_weekday_last& mwdl, int y) noexcept { return year(y) / mwdl; }
-constexpr inline year_month_weekday_last operator/(const year& y, const month_weekday_last& mwdl) noexcept { return {y, mwdl.month(), mwdl.weekday_last()}; }
-constexpr inline year_month_weekday_last operator/(int y, const month_weekday_last& mwdl) noexcept { return year(y) / mwdl; }
-constexpr inline year_month_weekday_last operator/(const month_weekday_last& mwdl, const year& y) noexcept { return y / mwdl; }
-
-constexpr inline year_month_weekday_last operator/(const month_weekday_last& mwdl, int y) noexcept { return year(y) / mwdl; }
+constexpr year_month_weekday_last operator/(const regular_month_weekday_last& mwdl, int y) noexcept { return year(y) / mwdl; }
+constexpr year_month_weekday_last operator/(const year& y, const month_weekday_last& mwdl) noexcept { return {y, mwdl.month(), mwdl.weekday_last()}; }
+constexpr year_month_weekday_last operator/(int y, const month_weekday_last& mwdl) noexcept { return year(y) / mwdl; }
+constexpr year_month_weekday_last operator/(const month_weekday_last& mwdl, const year& y) noexcept { return y / mwdl; }
+constexpr year_month_weekday_last operator/(const month_weekday_last& mwdl, int y) noexcept { return year(y) / mwdl; }
 
 } //namespace jewish
 
