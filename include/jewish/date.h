@@ -1,5 +1,5 @@
-#ifndef JEWISH_DATE_H
-#define JEWISH_DATE_H
+#ifndef JEWISH_DATE_H__
+#define JEWISH_DATE_H__
 
 #include <cstdint>
 #include <iostream>
@@ -12,33 +12,33 @@ template<class CharT, class Traits = std::char_traits<CharT>>
 class save_istream
 {
 	protected:
-		std::basic_ios<CharT, Traits>& is_;
-		CharT fill_;
-		std::ios::fmtflags flags_;
-		std::streamsize width_;
-		std::basic_ostream<CharT, Traits>* tie_;
-		std::locale loc_;
+	std::basic_ios<CharT, Traits>& is_;
+	CharT fill_;
+	std::ios::fmtflags flags_;
+	std::streamsize width_;
+	std::basic_ostream<CharT, Traits>* tie_;
+	std::locale loc_;
 
 	public:
-		~save_istream()
-		{
-			is_.fill(fill_);
-			is_.flags(flags_);
-			is_.width(width_);
-			is_.imbue(loc_);
-			is_.tie(tie_);
-		}
+	~save_istream()
+	{
+		is_.fill(fill_);
+		is_.flags(flags_);
+		is_.width(width_);
+		is_.imbue(loc_);
+		is_.tie(tie_);
+	}
 
-		save_istream(const save_istream&) = delete;
-		save_istream& operator=(const save_istream&) = delete;
+	save_istream(const save_istream&) = delete;
+	save_istream& operator=(const save_istream&) = delete;
 
-		explicit save_istream(std::basic_ios<CharT, Traits>& is)
-			: is_(is)
-			  , fill_(is.fill())
-			  , flags_(is.flags())
-			  , width_(is.width(0))
-			  , tie_(is.tie(nullptr))
-			  , loc_(is.getloc())
+	explicit save_istream(std::basic_ios<CharT, Traits>& is)
+		: is_(is)
+		  , fill_(is.fill())
+		  , flags_(is.flags())
+		  , width_(is.width(0))
+		  , tie_(is.tie(nullptr))
+		  , loc_(is.getloc())
 	{
 		if (tie_ != nullptr)
 			tie_->flush();
@@ -49,21 +49,21 @@ template<class CharT, class Traits = std::char_traits<CharT>>
 class save_ostream : private save_istream<CharT, Traits>
 {
 	public:
-		~save_ostream()
-		{
-			if ((this->flags_ & std::ios::unitbuf) &&
-					std::uncaught_exceptions() == 0 &&
-					this->is_.good())
-				this->is_.rdbuf()->pubsync();
-		}
+	~save_ostream()
+	{
+		if ((this->flags_ & std::ios::unitbuf) &&
+				std::uncaught_exceptions() == 0 &&
+				this->is_.good())
+			this->is_.rdbuf()->pubsync();
+	}
 
-		save_ostream(const save_ostream&) = delete;
-		save_ostream& operator=(const save_ostream&) = delete;
+	save_ostream(const save_ostream&) = delete;
+	save_ostream& operator=(const save_ostream&) = delete;
 
-		explicit save_ostream(std::basic_ios<CharT, Traits>& os)
-			: save_istream<CharT, Traits>(os)
-		{
-		}
+	explicit save_ostream(std::basic_ios<CharT, Traits>& os)
+		: save_istream<CharT, Traits>(os)
+	{
+	}
 };
 } //namespace details
 using date::last_spec; //std::chrono::last_spec;
@@ -95,9 +95,9 @@ class day
 	day() = default;
 	explicit constexpr day(unsigned d) noexcept : d_(static_cast<decltype(d_)>(d)) {}
 
-	constexpr day& operator++()    noexcept {++d_; return *this;}
+	constexpr day& operator++() noexcept {++d_; return *this;}
 	constexpr day  operator++(int) noexcept {auto tmp(*this); ++(*this); return tmp;}
-	constexpr day& operator--()    noexcept {--d_; return *this;}
+	constexpr day& operator--() noexcept {--d_; return *this;}
 	constexpr day  operator--(int) noexcept {auto tmp(*this); --(*this); return tmp;}
 
 	constexpr day& operator+=(const days& d) noexcept {*this = *this + d; return *this;}
@@ -292,8 +292,7 @@ class month_leap
 
 	constexpr explicit operator unsigned() const noexcept {return m_;}
 	constexpr bool ok() const noexcept {return 1 <= m_ && m_ <= 13;}
-	constexpr bool operator==(const month_leap&) const noexcept = default;
-	constexpr bool operator!=(const month_leap&) const noexcept = default;
+	constexpr auto operator<=>(const month_leap&) const noexcept = default;
 	private:
 	static constexpr unsigned from_regular_month(unsigned i) noexcept { return i>5?++i:i; }
 };
@@ -313,8 +312,7 @@ class month_regular
 
 	constexpr explicit operator unsigned() const noexcept {return m_;}
 	constexpr bool ok() const noexcept {return 1 <= m_ && m_ <= 12;}
-	constexpr bool operator==(const month_regular&) const noexcept = default;
-	constexpr bool operator!=(const month_regular&) const noexcept = default;
+	constexpr auto operator<=>(const month_regular&) const noexcept = default;
 	private:
 	static constexpr unsigned from_leap_month(unsigned i) noexcept { return i>5?--i:i; }
 };
@@ -394,9 +392,9 @@ class month
 	explicit constexpr month(month_regular m) noexcept : month(static_cast<unsigned>(m)) {}
 	explicit constexpr month(month_leap m) noexcept : month(static_cast<unsigned>(m)) {}
 
-	constexpr month& operator++()    noexcept {++m_; return *this;}
+	constexpr month& operator++() noexcept {++m_; return *this;}
 	constexpr month  operator++(int) noexcept {auto tmp(*this); ++(*this); return tmp;}
-	constexpr month& operator--()    noexcept {--m_; return *this;}
+	constexpr month& operator--() noexcept {--m_; return *this;}
 	constexpr month  operator--(int) noexcept {auto tmp(*this); --(*this); return tmp;}
 
 	constexpr month& operator+=(const months& m) noexcept {*this = *this + m; return *this;}
@@ -420,7 +418,7 @@ constexpr month  operator+(const months&  x, const month& y) noexcept { return y
 constexpr month  operator-(const month&  x, const months& y) noexcept { return x + -y; }
 
 template<class chart, class traits>
-std::basic_ostream<chart, traits>&
+inline std::basic_ostream<chart, traits>&
 operator<<(std::basic_ostream<chart, traits>& os, const month& y)
 { return os << static_cast<unsigned>(y); }
 
@@ -439,9 +437,9 @@ class year
 	year() = default;
 	explicit constexpr year(int y) noexcept : y_(static_cast<decltype(y_)>(y)) {}
 
-	constexpr year& operator++()    noexcept {++y_; return *this;}
+	constexpr year& operator++() noexcept {++y_; return *this;}
 	constexpr year  operator++(int) noexcept {auto tmp(*this); ++(*this); return tmp;}
-	constexpr year& operator--()    noexcept {--y_; return *this;}
+	constexpr year& operator--() noexcept {--y_; return *this;}
 	constexpr year  operator--(int) noexcept {auto tmp(*this); --(*this); return tmp;}
 
 	constexpr year& operator+=(const years& y) noexcept { *this = *this + y; return *this; }
@@ -463,8 +461,8 @@ class year
 	friend class year_month;
 	friend class year_month_last;
 	friend class year_month_day_last;
-	constexpr months months_since_creation() const { return months(((y_-1)*235+1)/19); }
-	constexpr auto days_since_creation()
+	constexpr months months_since_creation() const noexcept { return months(((y_-1)*235+1)/19); }
+	constexpr auto days_since_creation() const noexcept
 	{
 		auto ps = molad_tohu + months_since_creation();
 		auto ds = floor<days>(ps);
@@ -497,7 +495,7 @@ constexpr years operator-(const year&  x, const year&  y) noexcept
 { return years(static_cast<int>(x)-static_cast<int>(y)); }
 
 template<class chart, class traits>
-std::basic_ostream<chart, traits>&
+inline std::basic_ostream<chart, traits>&
 operator<<(std::basic_ostream<chart, traits>& os, const year& y)
 { return os << static_cast<int>(y); }
 
@@ -624,7 +622,8 @@ constexpr year_month operator-(const year_month& ym, const years& dy) noexcept {
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits>& os, const year_month& ym) { return os << ym.year() << '/' << ym.month(); }
+operator<<(std::basic_ostream<CharT, Traits>& os, const year_month& ym)
+{ return os << ym.year() << '/' << ym.month(); }
 
 // leap_month_day
 
@@ -646,7 +645,8 @@ class leap_month_day
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits>& os, const leap_month_day& md) { return os << md.month() << '/' << md.day(); }
+operator<<(std::basic_ostream<CharT, Traits>& os, const leap_month_day& md)
+{ return os << md.month() << '/' << md.day(); }
 
 // regular_month_day
 
@@ -668,7 +668,8 @@ class regular_month_day
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits>& os, const regular_month_day& md) { return os << md.month() << '/' << md.day(); }
+operator<<(std::basic_ostream<CharT, Traits>& os, const regular_month_day& md)
+{ return os << md.month() << '/' << md.day(); }
 
 // month_day
 
@@ -690,7 +691,8 @@ class month_day
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits>& os, const month_day& md) { return os << md.month() << '/' << md.day(); }
+operator<<(std::basic_ostream<CharT, Traits>& os, const month_day& md)
+{ return os << md.month() << '/' << md.day(); }
 
 // leap_month_weekday
 
@@ -707,7 +709,7 @@ class leap_month_weekday
 	constexpr jewish::weekday_indexed weekday_indexed() const noexcept { return wdi_; }
 
 	constexpr bool ok() const noexcept { return m_.ok() && wdi_.ok(); }
-	constexpr auto operator<=>(const leap_month_weekday&) const noexcept = default;
+	constexpr bool operator==(const leap_month_weekday&) const noexcept = default;
 };
 
 template<class CharT, class Traits>
@@ -730,7 +732,7 @@ class regular_month_weekday
 	constexpr jewish::weekday_indexed weekday_indexed() const noexcept { return wdi_; }
 
 	constexpr bool ok() const noexcept { return m_.ok() && wdi_.ok(); }
-	constexpr auto operator<=>(const regular_month_weekday&) const noexcept = default;
+	constexpr bool operator==(const regular_month_weekday&) const noexcept = default;
 };
 
 template<class CharT, class Traits>
@@ -753,7 +755,7 @@ class month_weekday
 	constexpr jewish::weekday_indexed weekday_indexed() const noexcept { return wdi_; }
 
 	constexpr bool ok() const noexcept { return m_.ok() && wdi_.ok(); }
-	constexpr auto operator<=>(const month_weekday&) const noexcept = default;
+	constexpr bool operator==(const month_weekday&) const noexcept = default;
 };
 
 template<class CharT, class Traits>
@@ -968,14 +970,15 @@ class year_month_day
 		: y_(y), m_(y.is_leap() ? jewish::month(m) : jewish::month(month_regular(m))), d_(d) {}
 	constexpr year_month_day(const jewish::year_month_day_last& ymdl) noexcept : year_month_day(ymdl.year(), ymdl.month(), ymdl.day()) {}
 	constexpr year_month_day(sys_days dp) noexcept : year_month_day(from_sys_days(dp.time_since_epoch())) {}
+	constexpr year_month_day(local_days dp) noexcept : year_month_day(from_sys_days(dp.time_since_epoch())) {}
 
 
 	template<class = details::unspecified_month_disambiguator>
 	constexpr year_month_day& operator+=(const months& m) noexcept {*this = *this + m; return *this;}
 	template<class = details::unspecified_month_disambiguator>
 	constexpr year_month_day& operator-=(const months& m) noexcept {*this = *this - m; return *this;}
-	constexpr year_month_day& operator+=(const years& y)  noexcept {*this = *this + y; return *this;}
-	constexpr year_month_day& operator-=(const years& y)  noexcept {*this = *this - y; return *this;}
+	constexpr year_month_day& operator+=(const years& y) noexcept {*this = *this + y; return *this;}
+	constexpr year_month_day& operator-=(const years& y) noexcept {*this = *this - y; return *this;}
 
 	constexpr auto operator<=>(const year_month_day&) const noexcept = default;
 
@@ -988,15 +991,15 @@ class year_month_day
 		return year_month(year(), month()).ok() && day().ok()
 			&& day() <= year_month_day_last(year(), month_day_last(month())).day();
 	}
-	constexpr operator sys_days() { return sys_days(days_since_creation() - sys_epoch_delta); }
-	constexpr explicit operator local_days() { return local_days(days_since_creation() - sys_epoch_delta); }
+	constexpr operator sys_days() const noexcept { return sys_days(days_since_creation() - sys_epoch_delta); }
+	constexpr explicit operator local_days() const noexcept { return local_days(days_since_creation() - sys_epoch_delta); }
 	private:
 	static constexpr auto sys_epoch_delta = year_month(jewish::year(5730), jewish::month(4)).days_since_creation()+days(23);
-	constexpr days days_since_creation() {
+	constexpr days days_since_creation() const noexcept {
 		auto ds = year_month(year(), month()).days_since_creation() + days(static_cast<unsigned>(day()));
 		return ds;
 	}
-	constexpr year_month_day from_sys_days(days ds)
+	static constexpr year_month_day from_sys_days(days ds) noexcept
 	{
 		ds+=sys_epoch_delta;
 		auto ym = year_month::from_creation_months(floor<months>(ds-floor<days>(molad_tohu)));
@@ -1025,16 +1028,10 @@ constexpr year_month_day operator+(const year_month_day& ymd, const months& dm) 
 }
 
 template<class>
-constexpr year_month_day operator+(const months& dm, const year_month_day& ymd) noexcept
-{
-	return ymd + dm;
-}
+constexpr year_month_day operator+(const months& dm, const year_month_day& ymd) noexcept { return ymd + dm; }
 
 template<class>
-constexpr year_month_day operator-(const year_month_day& ymd, const months& dm) noexcept
-{
-	return ymd + (-dm);
-}
+constexpr year_month_day operator-(const year_month_day& ymd, const months& dm) noexcept { return ymd + (-dm); }
 
 constexpr year_month_day operator+(const year_month_day& ymd, const years& dy) noexcept
 {
@@ -1042,19 +1039,11 @@ constexpr year_month_day operator+(const year_month_day& ymd, const years& dy) n
 	return {ym.year(), ym.month(), ymd.day()};
 }
 
-constexpr year_month_day operator+(const years& dy, const year_month_day& ymd) noexcept
-{
-	return ymd + dy;
-}
-
-constexpr year_month_day operator-(const year_month_day& ymd, const years& dy) noexcept
-{
-	return ymd + (-dy);
-}
+constexpr year_month_day operator+(const years& dy, const year_month_day& ymd) noexcept { return ymd + dy; }
+constexpr year_month_day operator-(const year_month_day& ymd, const years& dy) noexcept { return ymd + (-dy); }
 
 template<class CharT, class Traits>
-inline
-std::basic_ostream<CharT, Traits>&
+inline std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits>& os, const year_month_day& ymd)
 {
 	return os << year_month(ymd.year(), ymd.month()) << '/' << ymd.day();
@@ -1203,7 +1192,6 @@ class year_month_weekday
 			return false;
 		if (index() <= 4)
 			return true;
-		auto ymd = 
 		auto d2 = wdi_.weekday() - jewish::weekday(year_month_day(year(), month(), jewish::day(1))) +
 			days((wdi_.index()-1)*7 + 1);
 		return d2.count() <= static_cast<unsigned>(year_month_day_last(year(), month_day_last(month())).day());
@@ -1403,4 +1391,4 @@ constexpr year_month_weekday_last operator/(const month_weekday_last& mwdl, int 
 
 } //namespace jewish
 
-#endif //JEWISH_DATE_H
+#endif //JEWISH_DATE_H__

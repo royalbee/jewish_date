@@ -1,7 +1,7 @@
 #ifndef ISRAEL_HOLIDAYS_H
 #define ISRAEL_HOLIDAYS_H
 #include <utility>
-#include "jewish_date.h"
+#include "jewish/date.h"
 
 namespace israel_holidays {
 using namespace jewish::literals;
