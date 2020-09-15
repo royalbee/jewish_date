@@ -21,7 +21,12 @@ int main() {
 	}
 
 	{
-		constexpr auto ym = jewish::year(5781) / Tishrei;
+		static_assert(date::year_month_day(5781_y / Tishrei / 1) == date::year(2020) / 9 / 19);
+		static_assert(5781_y / Tishrei / 1 == jewish::year_month_day(date::year(2020) / 9 / 19));
+	}
+
+	{
+		constexpr auto ym = 5781_y / Tishrei;
 		constexpr auto ymdl = ym.year() / last / last;
 		constexpr auto yedl = ym.year() / Elul / last;
 		static_assert(ymdl == yedl);
