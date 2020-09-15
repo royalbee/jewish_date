@@ -333,7 +333,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const month_regular& mr) {
 		case 10: return os << "Tammuz";
 		case 11: return os << "Av";
 		case 12: return os << "Elul";
-		default: return os << static_cast<unsigned>(mr) << " is not a valid regylar month";
+		default: return os << static_cast<unsigned>(mr) << " is not a valid regular month";
 	}
 }
 
