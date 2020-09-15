@@ -1389,6 +1389,10 @@ constexpr year_month_weekday_last operator/(int y, const month_weekday_last& mwd
 constexpr year_month_weekday_last operator/(const month_weekday_last& mwdl, const year& y) noexcept { return y / mwdl; }
 constexpr year_month_weekday_last operator/(const month_weekday_last& mwdl, int y) noexcept { return year(y) / mwdl; }
 
+inline namespace literals {
+constexpr day  operator "" _d(unsigned long long d) noexcept { return day{static_cast<unsigned>(d)}; }
+constexpr year  operator "" _y(unsigned long long y) noexcept { return year{static_cast<int>(y)}; }
+} //namespace literals
 } //namespace jewish
 
 #endif //JEWISH_DATE_H__
