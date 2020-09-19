@@ -451,7 +451,7 @@ class year
 	constexpr bool is_leap() const noexcept {return (y_*7+1)%19 < 7;}
 
 	constexpr explicit operator int() const noexcept {return y_;}
-	constexpr bool ok() const noexcept { return y_>=0; }
+	constexpr bool ok() const noexcept { return y_>=1; }
 
 	static constexpr year min() noexcept;
 	static constexpr year max() noexcept;
