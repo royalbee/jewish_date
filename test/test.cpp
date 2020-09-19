@@ -12,6 +12,14 @@ int main() {
 	using namespace jewish;
 	using namespace jewish::literals;
 	{
+		//start from year 1
+		static_assert(!year(0).ok());
+		static_assert(year(1).ok());
+	}
+	{
+		static_assert(date::year_month_day(1_y / Tishrei / 1) == date::year(-3760) / date::sep / 7);
+	}
+	{
 		constexpr auto y = jewish::year(5779);
 		constexpr auto ymdl = y / last / last;
 		constexpr auto yedl = y / Elul / last;

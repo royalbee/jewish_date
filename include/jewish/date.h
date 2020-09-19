@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <chrono>
+#include <limits>
 #include <date/date.h>
 namespace jewish {
 namespace details {
@@ -451,10 +452,10 @@ class year
 	constexpr bool is_leap() const noexcept {return (y_*7+1)%19 < 7;}
 
 	constexpr explicit operator int() const noexcept {return y_;}
-	constexpr bool ok() const noexcept { return y_>=1; }
+	constexpr bool ok() const noexcept { return *this>=min(); }
 
-	static constexpr year min() noexcept;
-	static constexpr year max() noexcept;
+	static constexpr year min() noexcept { return year { 1 }; }
+	static constexpr year max() noexcept { return year { std::numeric_limits<decltype(y_)>::max() }; }
 
 	constexpr auto operator<=>(const year&) const noexcept = default;
 	private:
