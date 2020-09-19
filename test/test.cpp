@@ -15,9 +15,27 @@ int main() {
 		constexpr auto y = jewish::year(5779);
 		constexpr auto ymdl = y / last / last;
 		constexpr auto yedl = y / Elul / last;
+		static_assert(ymdl == yedl);
 		static_assert(y.is_leap());
 		static_assert(y / Adar == y / Adar_2);
-		static_assert(ymdl == yedl);
+		//leap to regular
+		static_assert(!(y+years(1)).is_leap());
+		//adar1,2(leap years exclusive) when applied to a regular year gets converted to adar
+		static_assert((y + years(1))/Adar_1 == (y + years(1))/Adar);
+		static_assert((y + years(1))/Adar_2 == (y + years(1))/Adar);
+		static_assert((y / Adar_1)+years(1) == (y + years(1))/Adar);
+		static_assert((y / Adar_2)+years(1) == (y + years(1))/Adar);
+		static_assert((y / Adar)+years(1) == (y + years(1))/Adar);
+		//leap to leap
+		static_assert((y+years(3)).is_leap());
+		static_assert((y / Adar_1)+years(3) == (y + years(3))/Adar_1);
+		static_assert((y / Adar_2)+years(3) == (y + years(3))/Adar_2);
+		//adar(regular) when applied to a leap year gets converted to adar2
+		static_assert((y / Adar_1)+years(3) != (y + years(3))/Adar);
+		static_assert((y / Adar_2)+years(3) == (y + years(3))/Adar);
+		static_assert((y / Adar_1)+years(3) == (y + years(3))/Adar_1);
+		static_assert((y / Adar_2)+years(3) == (y + years(3))/Adar_2);
+		static_assert((y / Adar)+years(3) == (y + years(3))/Adar);
 	}
 
 	{
@@ -38,6 +56,7 @@ int main() {
 		constexpr auto rhh = date::year_month_day(jewish::year_month_day(rhd));
 		static_assert(rhd == rhh);
 	}
+
 	{
 		auto y = jewish::year(1);
 		for (int i = 0; i < 10000; i++) {

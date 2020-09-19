@@ -147,11 +147,11 @@ class weekday
 	explicit constexpr weekday(unsigned wd) noexcept : wd_(wd == 7 ? 0 : wd) {}
 	explicit weekday(int) = delete;
 	constexpr weekday(const sys_days& dp) noexcept
-		: wd_(weekday_from_days(dp.time_since_epoch().count()))
+		: wd_(weekday_from_sys_days(dp.time_since_epoch().count()))
 		{}
 
 	constexpr explicit weekday(const local_days& dp) noexcept
-		: wd_(weekday_from_days(dp.time_since_epoch().count()))
+		: wd_(weekday_from_sys_days(dp.time_since_epoch().count()))
 		{}
 
 	constexpr weekday& operator++() noexcept {if (++wd_ == 7) wd_ = 0; return *this;}
@@ -186,7 +186,7 @@ class weekday
 		return weekday{static_cast<unsigned>(wdu - wk * 7)};
 	}
 	private:
-	static constexpr unsigned char weekday_from_days(int z) noexcept
+	static constexpr unsigned char weekday_from_sys_days(int z) noexcept
 	{
 		auto u = static_cast<unsigned>(z);
 		return static_cast<unsigned char>(z >= -5 ? (u+5) % 7 : u % 7 /*XXX*/);
@@ -314,7 +314,7 @@ class month_regular
 	constexpr bool ok() const noexcept {return 1 <= m_ && m_ <= 12;}
 	constexpr auto operator<=>(const month_regular&) const noexcept = default;
 	private:
-	static constexpr unsigned from_leap_month(unsigned i) noexcept { return i>5?--i:i; }
+	static constexpr unsigned from_leap_month(unsigned i) noexcept { return i>6?--i:i; }
 };
 
 template<class CharT, class Traits>
@@ -941,7 +941,8 @@ template<class>
 constexpr year_month_day_last operator-(const year_month_day_last& ymdl, const months& dm) noexcept { return ymdl + (-dm); }
 constexpr year_month_day_last operator+(const year_month_day_last& ymdl, const years& dy) noexcept
 {
-	return {ymdl.year()+dy, ymdl.month_day_last()};
+	auto ym = year_month(ymdl.year(), ymdl.month()) + dy;
+	return year_month_day_last(ym.year(), month_day_last(ym.month()));
 }
 
 constexpr year_month_day_last operator+(const years& dy, const year_month_day_last& ymdl) noexcept { return ymdl + dy; }
@@ -1113,7 +1114,7 @@ constexpr year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const months& dm) noexcept
 {
 	auto ym = year_month(ymwdl.year(), ymwdl.month()) + dm;
-	return {ymwdl.year(), ymwdl.month(), ymwdl.weekday_last()};
+	return {ym.year(), ym.month(), ymwdl.weekday_last()};
 }
 
 template<class = details::unspecified_month_disambiguator>
@@ -1127,7 +1128,8 @@ operator-(const year_month_weekday_last& ymwdl, const months& dm) noexcept { ret
 constexpr year_month_weekday_last
 operator+(const year_month_weekday_last& ymwdl, const years& dy) noexcept
 {
-	return {ymwdl.year()+dy, ymwdl.month(), ymwdl.weekday_last()};
+	auto ym = year_month(ymwdl.year(), ymwdl.month()) + dy;
+	return {ym.year()+dy, ym.month(), ymwdl.weekday_last()};
 }
 
 constexpr year_month_weekday_last
@@ -1240,7 +1242,8 @@ operator-(const year_month_weekday& ymwd, const months& dm) noexcept { return ym
 constexpr year_month_weekday
 operator+(const year_month_weekday& ymwd, const years& dy) noexcept
 {
-	return {ymwd.year()+dy, ymwd.month(), ymwd.weekday_indexed()};
+	auto ym = year_month(ymwd.year(), ymwd.month()) + dy;
+	return {ym.year(), ym.month(), ymwd.weekday_indexed()};
 }
 constexpr year_month_weekday
 operator+(const years& dy, const year_month_weekday& ymwd) noexcept { return ymwd + dy; }
